@@ -1,0 +1,18 @@
+# Render.com Blueprint — Arena AI WA Bot (KAVIZ MD V1) · free instance
+# Render: New + → Blueprint → මේ repo එක select කරන්න → env var values දෙන්න → Apply
+services:
+  - type: web
+    name: arena-ai-wa-bot
+    runtime: docker
+    plan: free
+    healthCheckPath: /status
+    autoDeploy: true
+    envVars:
+      - key: PAIR_KEY          # pair site key — ඔයාට ඕන එකක් (අකුරු/අංක 4-32) e.g. KAVIZ724810
+        sync: false
+      - key: HF_TOKEN          # HF access token (session backup එකට)
+        sync: false
+      - key: HF_REPO           # session backup dataset — Kavuz/kaviz-session
+        sync: false
+      - key: ARENA_PANEL       # panel mode: DL_TMP disk එකට + ffmpeg auto-download
+        value: "1"

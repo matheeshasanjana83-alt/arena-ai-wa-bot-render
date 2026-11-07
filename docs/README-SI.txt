@@ -1,0 +1,457 @@
+v2.68.0 — SACHI-MD PORT: ඔයා එවපු Sachi-MD bot base එකේ තිබුණ KAVIZ එකේ නැති commands ටික ඇතුල් කළා — 📦 *.apk <app නම / package / url>* — Play Store + APKPure + Aptoide + F-Droid search එක්ක search card එකට අංකයක reply කරලා APK එක download කරගන්න (PK signature check එක්ක) · 🖼️ *.getdp <number>* — කට්ටු number එකකේ profile photo එක · 🕵️ *.vv* — view-once photo/video reveal. 🎬 .video/.song ¡best·quality keyword (64..320kbps audio). 🫠 yt-dlp freshness fix: GitHub API quota නිසස releases/latest redirect එකෙන් version check — පරණ yt-dlp එක auto-update වෙන්නේ තිබ්බේ නැහැ (panel 0/60 rate-limit) = .song/.video වැඩ කරලා ඕනි bug එකෙන් එකකුත්.
+v2.67.0 — .song/.video INNERTUBE FALLBACK: Asitha MD ලා use කරන රහස (youtubei.js) අපේ bot එකටත් — yt-dlp 403 'bot check' එකේදීවත් innertube session එකෙන් download වෙනවා (native PO tokens + in-process decipher). Ladder: yt-dlp → youtubei.js → clipto. Quality menu එකට 3වෙනි source එකක්.
+v2.66.0 — .song/.video 403 ROOT-CAUSE FIX: yt-dlp 2026 එකට JavaScript runtime එකක් තිබ්බේ නෑ (deno විතරයි default) → YouTube challenge එක solve වුණේ නෑ → හැම download එකක්ම 'Sign in to confirm you're not a bot' (403). Fix: bot එකේම node binary එක --js-runtimes විදිහට දුන්නා — info + download + /diag හැම call එකකම.
+KAVIZ MD V1 (Arena AI v2.3 base) — ඔයාට විතරක් වැඩ කරන WhatsApp bot එක (AI + Downloader)
+=====================================================================
+Commands ("Message yourself" chat එකේ ගහන්න):
+  .ai <ප්‍රශ්නය>             AI එකෙන් අහන්න (සිංහල OK). කලින් කතාව මතක තියාගන්නවා (පණිවිඩ 10ක්)
+  (message එකකට reply කරලා) .ai   → ඒ message එක ගැන පැහැදිලි කරනවා / translate කරනවා
+  .ai reset                  කතාව අලුතෙන් පටන් ගන්න
+  .download <link>           file එක download කරලා document එකක් විදියට එවනවා (.dl / .dn)
+  .setkey gemini <KEY>       Gemini free key දාන්න   (key message එක auto මැකෙනවා)
+  .setkey groq <KEY>         Groq free key දාන්න
+  .setkey zai <KEY>          Z.ai (GLM) key දාන්න  (alias: z.ai / glm)
+  .keys                      keys තියෙනවද බලන්න      .delkey gemini|groq|zai  → key මකන්න
+  .setting                   settings panel — අංකය reply කරලා toggle කරන්න (mode/anti-bug/report/block/update/maxmb/react)
+  .mode                      🛡 mode panel — 1 Public · 2 Private · 3 Inbox Only · 4 Groups Only · 5/6 AI Chat on/off · 11-16 AI modes
+  .forward <number|jid>      reply කරපු message එක අනිත් chat එකකට forward (targets 5 දක්වා) — .jid එකෙන් jid එක ගන්න
+  .ping / .help
+
+AI ගැන ඇත්ත: උත්තර දෙන්නේ Google Gemini / Groq free models (KAVIZ agent එක නෙවෙයි).
+Gemini fail වුණොත් Groq එකට auto මාරු වෙනවා. Free limits ඉවර වුණොත් ටිකකින් ආයෙත් try කරන්න.
+
+Free keys:
+  Gemini → https://aistudio.google.com/apikey   (Google account → Create API key)
+  Groq   → https://console.groq.com/keys        (login → Create API Key)
+
+Download support: direct links, GitHub, Google Drive (public), MediaFire, MEGA, Dropbox, Pixeldrain,
+litterbox/catbox, x0.at, transfer.archivete.am, filebin, eporner (v2.17). (gofile / LimeWire / folders support නෑ). Max 2 GB.
+
+🔒 Private: ඔයා යවන messages විතරයි. වෙන අය commands යැව්වත් ignore.
+
+v2.65.0 — 🎵 .SONG FIX + ⚡ MENU SPEED + 🌐 EPORNER CDN FIX
+  • 🎵 .song 403 fix — YouTube attempt ladder එක panel probe එකෙන් තහවුරු කරපු order එකට: direct →
+    cookies → proxy/pool → alt-clients (පරණ alt-first order එක දැන් fail — "page needs to be reloaded")
+  • ⚡ .video/.song quality menu එක 8s cap — yt-dlp info slow/bot-check නම් clipto.com API එකෙන්ම
+    menu rows (පරණ sequential fallback chain එක = "menu එකට විනාඩි 4" bug එක)
+  • ⚡ info JSON variants ඔක්කොම parallel race (හරියන එක ලේටස්ට් එකෙන් ගන්නවා) — hung proxy එකක්
+    ඉතුරු attempts delay කරන්නේ නෑ
+  • 🌐 eporner CDN mirror fix — සමහර mirrors (vid-*-nl-cdn…) server IPs block කරනවා: dead mirror එකකට
+    ගැහුවම ඊළඟ height/format එකට මාරු වෙලා round 2 එකේ fresh page load එකකින් අලුත් mirror එකක් ගන්නවා;
+    connect fail එකකදී "video page link එක එවන්න" hint එකකුත්
+  • 🌐 DoH edge-IP cache — connect fail එකකදී ඉබේම re-resolve (මැරුණු CDN IP එකක් 10 min බඳින එක නවතිනවා)
+  • clipto googlevideo transient 403/5xx → auto retry එකක්
+  • 🩺 /diag එකට ?yt=1 (player clients × audio probes) + ?ep=1 (CDN host TCP tests) — future debugging
+  • Tests: test_v265 new (race/ladder/cliptoRows/DoH invalidate) + full regression
+
+v2.64.0 — ⚡ FAST DOWNLOADS + 📋 YT QUALITY MENU
+  • Downloads ⚡ වේගවත්: .download / .mediafire / .mega / .gdrive දැන් connections 6ක් පාවිච්චි
+    කරලා parallel බාගන්නවා (server එක range support කරනවා නම් — 3-6× වේගයක්; support නැත්නම්
+    පරණ විදියටම single-stream)
+  • yt-dlp එකට concurrent fragments 5 — YouTube/DASH/HLS downloads වේගවත් + retries අඩු කරලා
+    fail වුණු attempts ඉක්මනට ඊළඟ attempt එකට මාරු වෙනවා
+  • MediaFire link resolve එක 10 min cache වෙනවා — දෙපාරක් එකම link එක දුන්නාම page scrape එක skip
+  • 📋 .video <link/නම> — quality menu card එකක් එනවා (1080p · ~245 MB වගේ rows, sizes ඇත්ත) —
+    card එකට අංකය reply කරන්න (මිනිත්තු 60 ඇතුලත) · 2160p → 144p
+  • 📋 .song <link/නම> — format menu: M4A original (වේගවත්ම) / MP3 320 / MP3 128 — MP3 convert
+    ffmpeg එකෙන්; ffmpeg fail උනොත් M4A ම එවනවා
+  • කලින් විදියටම instant pick වැඩ: .video <link> 1080 · .song <link> 320k / m4a
+  • වැරදි අංකයක් / expire වුණු card එකකට reply → menu එක ආයෙත් පෙන්නනවා (.ytmenu)
+
+v2.63.0 — 🛡️ MOVIEDEX REGION-BLOCK FIX (406)
+  • ".mdx" එකෙන් "MovieBox API fail: HTTP 406 Not Acceptable" ආවේ MovieBox එක server එකේ
+    datacenter IP එක block කරලා නිසා (406 "find no content" — login වැඩ, search වැඩ නෑ)
+  • Fix: MovieBox API calls දැන් direct fail උනොත් bot එකේම proxy pool එකෙන් auto route වෙනවා —
+    වැඩ කරන proxy එකක් STICKY විදියට තියාගන්නවා, direct ආයෙත් 30 min පස්සේ try කරලා බලනවා
+  • Login/registration එකත් ඒම path එකෙන්ම යනවා — CDN downloads direct ම (වේගයට බාධාවක් නෑ)
+  • pairsite /diag endpoint එකක් — MovieBox connectivity panel-side පරීක්ෂා කරන්න
+v2.62.0 — 🔢 EPISODE NUMBERS FIX + 💾 REAL SIZES
+  • Episode අංකය ගහපුවම දැන් හරි episode එකම එනවා — "123" reply කළාම Season 1 Episode 123
+    (කලින් Episode 122 වෙනවා — season pack row එක අංක 1 ගත්ත නිසා හැම episode එකක්ම 1කින් පස්සට
+    තිබුණා). දැන් menu එකේ අංකය = episode අංකය (single-season shows)
+  • 📦 Season pack row එක episodes ඉවර වුණාට පස්සේ යනවා (BC: pack = 171) — pack එකට ඒ අංකය reply කරන්න
+  • Quality sizes දැන් ඇත්ත sizes — කලින් හැම එකක්ම "~1 MB" පෙන්නුවේ MovieBox API එක size field එක
+    junk කරලා නිසා (හැම row එකක්ම 0.8MB preview size එක). දැන් resource-position/v2 එකෙන් exact
+    size එක ගන්නවා (BC E122 720p = ~90 MB) — 10-min cache එකකුත් තියෙනවා
+  • Junk size එකක් ආවොත් size එක hide කරනවා (බොරු "~1 MB" කියන්නේ නෑ) — season pack maxMB guard
+    එකත් දැන් ඇත්ත sizes වලින් වැඩ කරනවා
+  • Tests: test_v262 28/28 · v261 21/21 · v260 34/34 · menu-full 49/49 (+ v241/v243/v244/v245/v246/
+    v256/v257/v259 · quote-only · bridge · test.js baseline)
+
+v2.61.0 — 🎬 MOVIEDEX DEEP EPISODES FIX (118+ පස්සෙ episodes)
+  • Episode 118ට පස්සේ ඒවාටත් දැන් quality menu එක එනවා (කලින් "streams නෑ" වෙනවා —
+    Black Clover E124/E125 වගේ)
+  • E123 වගේ episodes වල 360p/1080p/480p ආයෙත් menu එකට එනවා (කලින් 720p විතරයි පෙන්නුවේ)
+  • හේතුව: MovieBox resource API එක episodes 20 බැගින් pages වල යවනවා — bot එක page 6ක්
+    විතරයි බැලුවේ (rows 120) — 118+ පස්සේ rows page 7+ ඉඳන් තමයි. දැන් totalCount එක
+    ඉවර වෙනකම් walk කරනවා (මුල් episodes fastම, safety cap 15 pages)
+  • Subtitles section එකත් deep episodes වලට වැඩ කරනවා (E124 = 12 භාෂා live verify)
+  • Note: සමහර episodes වලට MovieBox එකේම 720p නෑ (BC E120/124/125) — ඒවට 1080p+480p+360p
+    options පෙන්නනවා
+
+v2.60.0 — 🗨 MOVIEDEX SUBTITLES (quality menu එකෙන්ම)
+  • Episode + movie quality menus වල දැන් ▸ Subtitles section එකක් — MovieBox එකේම multi-language
+    .srt tracks (Black Clover S1E1 = 14 භාෂා · Deadpool = 14 · en/bn/ar/es/fil/fr/hi/in_id/ms/pa/pt/ru/ur/zh…)
+  • Numbering එක qualities වලින් පස්සේ continue වෙනවා (qualities 1-4 → subtitles 5..N) — reply කරපු
+    number එක subtitle එකක් නම් → .srt document එකක් විදියට එවනවා
+  • File name: "Black Clover S01E01 - si (සිංහල).srt" shape · VTT tracks auto-convert වෙනවා SRT එකට
+  • <q#> link suffix → subtitle එකේ direct URL එක (file එකක් නෙවෙයි)
+  • API එකේ subtitles නැති titles වලට section එකම නෑ — menu එක පරණ විදියටම
+  • Tests: test_v260 34/34 · v259 37/37 · v241 75/75 · v256 95/95 · v257 32/32 · quote-only 19/19 ·
+    bridge 17/17 · menu-full 45/45
+
+v2.59.0 — 📥 NEW DOWNLOAD COMMANDS (mediafire/mega/gdrive/video/song)
+  • අලුත් site-locked download commands: .mediafire <link> (🔥 MediaFire) · .mega <link> (🟢 MEGA) ·
+    .gdrive <link> (🔵 Google Drive) — හැම එකක්ම තමන්ගේ site එකේ links වලට විතරයි
+  • වැරදි link එකක් (අනිත් site එකක්) දැම්මොත් bot එක කියනවා මොන site එකේ link එක ඕනේද කියලා —
+    ඕනෑම site එකක් වලට *.download <link>* එකම වැඩ (universal)
+  • .video (yt) / .song (yt) — YouTube video/audio download commands 📥 DOWNLOAD menu එකටත් add වෙලා
+  • 📥 DOWNLOAD menu එකේ දැන් ඔක්කොම පේනවා: .download · .mediafire · .mega · .gdrive · .video · .song ·
+    .dl (multi) · .mirror · .gitclone
+  • Site-locked commands වල progress bubble එකේ site එකේ නම පේනවා (⏳ 🔥 MediaFire — Download වෙනවා...)
+  • Tests: test_v259 37/37 · v241 75/75 · v256 95/95 · v257 32/32 · quote-only 19/19 · bridge 17/17 · menu 45/45
+
+v2.58.0 — 🔢 NUMBERS = QUOTE-ONLY (bug fix)
+  • Menu / Settings / Mode panels + MovieDex cards — number එකක් වැඩ කරන්නේ card එකට REPLY (quote) කරලා ම යවපුවම විතරයි
+  • Bug: menu එකට reply නොකර '1' විතරක් ගැහුවාම (3 min ඇතුළත) DOWNLOAD category open වුණා — දැන් bare number එකකට කිසිම response එකක් නෑ
+  • AI chat එකත් bare 1-3 digit messages වලට silent (quota නාස්තියක් නෑ)
+  • Quote කරපු number flows ඔක්කොම කලින් වගේම — MovieDex ring 40 · TTL 60 min · menu fresh නම් search-pick වෙන්නේ නෑ
+  • Tests: test.js menu E2E +2 bare-silence · v241 mode E2E quoted picks · v257 41/41
+
+v2.57.0 — 📦 /abc/ FILE HOST (web එකෙන් file download)
+  • Pair site එකම අලුත් file host එකක්වෙලා: GET /abc → upload කරපු file list එක, GET /abc/<name> → file එක download
+  • Panel එකේ /abc/ folder එකේ තියෙන හැම file එකක්ම serve වෙනවා (දැනට: matheeshasanjana83-alt/abc —
+    ASITHA MD V6 files + abc-asitha-md-v6.zip)
+  • 🛡 Path-traversal safe: ../ ..\ %2e%2e encoded tricks ඔක්කොම reject — abc/ folder එකෙන් පිට කිසිම file එකක්
+    පෙනෙන්නේ නෑ · hidden files (.) block · content-type map · zip = auto download
+  • Bot code වෙනස් වුනේ නෑ — KAVIZ commands/AI/anti-bug ඔක්කොම කලින් වගේම
+  • Tests: test_v257 41/41 · v256 95/95 · v255 44/44 · v253 35/35 · v252 17/17 · v2511 24/24 · v251 43/43
+
+v2.56.0 — 🔥 ROAST TRAINED + SINHALA FIXED (screenshots bug fix)
+  • Groq model order: openai/gpt-oss-120b FIRST — කලින් llama-3.3-70b එකෙන් එන සිංහල කැඩිලා
+    ("සම තිට්ටිකිරිම කන කරන්න" වගේ garble + එකම reply ×5 repeat loop) — gpt-oss සිංහල + instructions වඩා හොඳයි
+  • Roast persona trained: refuse/apologize FORBIDDEN (banter framing), Sinhala script ONLY,
+    එකම comeback දෙපාරක් නෑ, gibberish typing වලටම roast, heavy බැනුමට heavy roast
+  • 🛡 Quality guards: reply එක refusal / English / කලින් එකම repeat නම් → ඊළඟ model auto-retry →
+    Roast bank (canned savage Sinhala 30 lines, ring-8 anti-repeat) — bot කවදාවත් silent නෑ
+  • Singlish detection boost: kari · ponnaya · pukata · hukanna · kimba · pusha · gawura · yako/yakoneko ·
+    miyo · balla · karaya · ammata · thoge + යකො · යකෝ · මියෝ · බල්ලා · මෝඩ · බනින්නම්...
+  • lang-guard (normal chat): කෙටි/සිංහල/සිංග්ලිෂ් message වලට English reply ආවොත් ("Hey! How can I help
+    you today?" bug) ඊළඟ model එකට retry → අන්තිමට last reply (silent නෙවෙයි)
+  • Memory poison purge: boot එකේදී refusal + repeat-garble history auto-clean (හයිනා garble loop නැවතුම්)
+  • SYSTEM trained: Singlish glossary (kohomada/mokada/ubata/karanna...) + ALWAYS-means-ALWAYS Sinhala
+    ("Hy"/"hi" වලටත් සිංහල) + no-garble rule + gibberish playful rule · roast replies temperature 0.95
+v2.55.0 — 🛡️ POWERFUL ANTI-BUG v5 (OUT-GUARD + echo-hole close + stuck-chat rescue)
+  • OUT-GUARD: bot එකෙන් යන හැම text/caption එකක්ම auto sanitize — control chars, bidi overrides, tag chars
+    (U+E0000-E01EF), invisible storms, unbroken runs, lone surrogates ඔක්කොම මකලා + 60k hard cap.
+    Bug payload එකක් bot එකෙන් කවදාවත් පිටතට යන්නේ නෑ (AI echo වුනත් safe). Sinhala/emoji ❤️/family ZWJ ආරක්ෂා.
+  • Echo-hole closed: bug එකක් detect වුණාම AI/anti-spam/commands ඒ message එක කවදාවත් touch කරන්නේ නෑ (කලින් AI එකට ගිහින් reply එක bug එක quote කරලා ආපහු එනවා)
+  • Report 24h budget (default 20/දවස්): mass-report කරන account එක WhatsApp එකෙන් flag වෙන එක වළක්වනවා.
+    Server reject ×3 → reports 1h pause (account safety). Block එක budget ඉවර වුනත් වැඩ.
+  • Storm lockdown: විනාඩි 10ක් ඇතුලේ severe bug 3ක් = attack → AI 5min silent (echo/amplifier guard) + owner card
+  • .antibug clearchat yes — bug වැදලා phone එකේ clear/delete වෙන්නේ නැති chat එක account-wide මකනවා (phone එකේත් clean)
+  • .antibug unblock all — block කරපු ඔක්කොම unblock (recover)
+  • selfTest: invincible-50k + tag-char storm classes added (44/44)
+
+v2.46.0 — 🎬 MovieBox REAL-STREAM FIX (quality menus ආයෙත් වැඩ)
+  • MovieBox visitor DASH path එක (signCookie) Oct 10 ඉඳන් stub — හැම quality menu එකක්ම "0 rows" වෙලා තිබුණා
+  • අලුත් registered-user path: resource → resource-position/v2 → REAL signed MP4 (bcdn) — 1080/720/480/360 real files, DASH/mux නෑ (වේගය වැඩියි)
+  • Auto account registration (temp-email) — settings.json moviedexUserToken · 401/406 ආවොත් auto re-register · v2.43/v2.44/v2.45 fixes intact
+  • Menu error messages silence bug fix (edit-after-delete)
+
+v2.44.0 — ⚡ MovieBox download SPEED II
+  • CDN එක per-connection throttle (benchmark-verified) → segment workers 8/6 → 16/8 → download ~1.5-1.9× වේගවත් (env: ARENA_SEG_WORKERS_V/A)
+  • 360p re-encode: veryfast → ultrafast (2-3× faster, size cap එක විතරම)
+  • අලුත් phase logs: ⬇️ chunks / 🎞️ re-encode / 📤 upload — slow phase එක හරියටම trace කරන්න පුළුවන්
+  • සාක්ෂිය: WhatsApp upload 53MB → ~6s. Slow පාරවල්වල bottleneck එක MovieBox CDN download එක.
+
+v2.41.0 — 🛡 MODE PANEL + 🤖 AI CHAT + 🧭 FORWARD
+  • .mode — numbered panel: 1 Public (හැමොටම inbox+groups) · 2 Private (owner ට විතරයි) · 3 Inbox Only (DM වල විතරයි) · 4 Groups Only (groups වල විතරයි) — අංකය reply → set → panel refresh. Legacy .mode all/self = public/private
+  • Public/Inbox/Groups modes වලදී අනිත් අයටත් bot එක use කරන්න පුළුවන් — owner-only commands (.mode/.setting/.setkey/.block/.update/.forward/group tools...) ඔක්කොම අගුලුලා (🔒 owner ට විතරයි reply)
+  • 🤖 AI CHAT — panel 5/6: Enable/Disable. AI modes 11-16: Inbox Public (everyone) · Inbox Self (owner "Message yourself") · Inbox Private (others only) · Groups Only (@KAVIZ / bot ට reply කරාම) · All (inbox+groups+bot) · All Public (bot chat එකෙන් නෑ). Group වල AI = mention/reply විතරයි (flood නෑ) · per-chat 4s gap · keys නෑනම් silent
+  • 🧭 .forward <number|jid> — message එකකට reply කරලා අනිත් chat එකකට forward (5 targets දක්වා, 07x/+94x/94x + dashes + @g.us + @lid + wa.me links + "me" = self chat; ephemeral/viewOnce replies වලටත් වැඩ; full jid copy-paste ✅). Owner-only (account abuse/Spam වළක්වන්න)
+  • Number routing දැන් 3 panels: .setting / .menu / .mode — exact quote win · නැත්නම් අලුත්ම panel. v2.40 packs removal unchanged (v2.37 speed intact)
+
+v2.29.0 — 🌐 NEW: Pair site — panel එකේම web pairing page
+  • Bot එක run වෙන port එකේම web page එකක් (panel: http://<panel-host>:<port>/?key=XXXX — URL එක console එකේ print වෙනවා) — open කරලා WhatsApp number එක දාන්න, pairing code (XXXX-XXXX) site එකේම පේනවා → WhatsApp → Linked devices → Link a device → "Link with phone number instead"
+  • Panel console එකේ number ගහන්න / Termux readline එක ගැන හිතන්න ඕන නෑ — phone/browser එකෙන්ම pair
+  • Security: pair key අනිවාර්යයි (env PAIR_KEY හෝ settings.json pairKey — නැත්නම් auto-generate වෙලා console එකේ print වෙනවා) · registered session එකක් pair කරන්න බෑ · IP එකකට 10s rate-limit · noindex
+  • Page එකේම live bot status (starting/connecting/online) — පරණ /status JSON endpoint එකත් එහෙමම (panel health check)
+
+v2.28.0 — 🍿 MovieDex FIX: reply bridge + clean cards
+  • Reply bridge FIX: කලින් අන්තිම card එක විතරක් මතක තිබුණා — quality menu එකක් ආපුවම series card එකට reply කළ අංක (66/67 වගේ) "result නෑ (1-10)" වෙනවා. දැන් අන්තිම cards 8ම මතකයි — series card / quality menu / search list ඕනෑම එකකට reply කළාත් හරි step එකට යනවා
+  • Cards clean: "අංකය reply කරන්න…", "✦ full menu…", "🔗 links…" hint lines ඔක්කොම අයින් — හැම card එකේම "> ＫＡＶＩＺ Ｖ1 🍁" footer විතරයි
+
+v2.27.0 — 🍿 MovieDex FIX: FULL menu + fast replies
+  • Series FULL MENU: seasons + episodes ඔක්කොම එක message එකේම — කලින් 60/page (Black Clover = 3 pages) → දැන් 200 rows/page, 174-episode shows එක පාරම (mega series 200+ rows විතරයි pages වෙන්නේ)
+  • Reply fast-fail: quality menu probes 8 tries → 2 — API flake වුණොත් මිනිත්තු ගානක් hang වෙන්නේ නෑ, seconds වලින් menu/error
+  • Session expire වුණොත් number reply වලට silence නෑ — ".moviedex <name> ආයෙත්" hint එක එනවා
+
+v2.26.0 — 🍿 NEW: .moviedex — movie + 📺 TV series download
+  • අලුත් command: .moviedex <movie/series නම> (alias .mdx) — MovieBox mobile API එකෙන් (signed guest access, live verified)
+  • Search: movies + series එකම list එකේ (series = 📺) → අංකය reply → info card (IMDb rating / genres / description / poster)
+  • Movies: quality options (1080p / 720p / 480p — real sizes) → අංකය reply → movie FILE එකම chat එකට
+  • Series: Episodes List — v2.27 FULL MENU (📦 season rows + Season N Episode M rows ඔක්කොම එක message එකේ, 200+ row mega shows විතරයි pages) → season row → 🧳 quality options → season pack = episodes එකින් එක files (50/run + next) · episode row → 🎬 quality → episode file
+  • Delivery pipeline: MovieBox signCookie → DASH manifest (index.mpd) → fMP4 segments (own concurrent downloader) → ffmpeg -c copy mux (hevc → .mkv) → WhatsApp document
+  • 'link' suffix → 🔗 mirror share link (.moviedex <n> <q#> link) · .maxmb size guard · quality sizes honest (~ estimates)
+  • අංකය reply UX: card එකක් ආවම අංකය විතරක් reply කරාම ඇති — menu bridge එකත් එහෙමම (menu cards first)
+  • ffmpeg ඕනේ: panels auto-download කරගන්නවා · Termux: pkg install ffmpeg
+  • ⚠️ 1080p full movies WhatsApp 2GB limit එකට වඩා ලොකු වෙනවා — 720p/480p use කරන්න (හෝ link mode)
+
+v2.25.0 — 🗑️ MoviePro අයින් කළා (.moviepro / .mvpro / .movie)
+  • .moviepro command එක සහ movies.js module එක මුළුමනින් අයින් — වැඩ නැති නිසා
+  • .update කළාම panel එකේ movies.js + පරණ movie test files ඇතුළුව auto-delete වෙනවා (updater අලුත් "removed" list feature)
+  • Menu / HELP / categories වලින් MoviePro අයින්; bare-number reply දැන් .menu categories වලට විතරයි
+  • අනිත් හැම feature එකක්ම කලින් විදිහටම: .download · .yt/.fb/.tiktok/ig/x · .ai · .mirror/.tourl · .s · tools ඔක්කොම
+
+v2.24.0 — 🧳 MoviePro REPLY flow (Asitha-style — commands නැතුව අංකය reply කරන්න)
+  • දැන් හැම card එකකටම අංකය එකක් reply කරන්න පුළුවන් — commands ගහන්න ඕනෙ නෑ:
+      .moviepro breaking bad  →  list
+      reply "6" (series එකට)  →  🍀 IMDb card + Episodes List
+      reply "1" (season row)  →  🧳 SELECT DOWNLOAD OPTION FOR SEASON 1 (Video Qualities)
+      reply "1" (quality)     →  🧳 Starting Season 1 Download… Total Episodes / Quality
+  • SEASON PACK = FILES එකින් එක — හැම episode එකක්ම separate message එකක් විදිහට:
+      🎬 *Breaking Bad S1E1*  ·  ⚡ Quality: 720p  (filename: Breaking Bad S01E01 [720p].mp4)
+    එක run එකක files 50 දක්වා — ඉතුරු ටිකට ".moviepro <n> <row> <q> next" (හෝ ඒ command එක ආයෙත්)
+  • Quality rows සැබෑ labels: "Server CS Player 720p" → 🎥 Video: 720p (quality token නැත්නම් server නම)
+  • Row numbers 3 digits දක්වා (ලොකු seasons වලට — 173 rows වගේ)
+  • 🔗 links ඕනෙ නම් පරණ විදිහ තියෙනවා: .moviepro <n> <row#> <q#> link (direct links 25 බැගින්)
+  • Subtitle rows දාන්නේ නෑ — CineSubz එකේ subtitle files නෑ (probed 2026-10); බොරු options පෙන්නන්නේ නෑ
+  • Movies/episode pipelines වෙනස් වෙලා නෑ (movie file / episode file / trailer ඔක්කොම දැනට වගේ)
+
+v2.23.0 — 📺 MoviePro SERIES flow (TV series + season packs)
+  • .moviepro <නම> — දැන් movies + TV series දෙකම හොයනවා (series = 📺 mark එකත් එක්ක)
+  • .moviepro <අංකය> (series එකකට) — IMDb details card (📅 release · ⏱ runtime · ⭐ rating ·
+    🎭 genres · 🌍 country · 📝 description) + Episodes List:
+      *1* | 📦 Download Season 1 (All Episodes)
+      *2* | Season 1 Episode 1  ·  date
+      ... (episodes 60 බැගින් pages — .moviepro <n> next = ඊළඟ page)
+  • .moviepro <අංකය> <row#> (season row එකකට) — Video Quality options (480p/720p/...) +
+    සිංහල උපසිරැසි link
+  • .moviepro <අංකය> <row#> <quality#> — ඒ season එකේ episodes ඔක්කොමේ DIRECT download links
+    (25 බැගින් — .moviepro <n> <row#> <q#> next = ඊළඟ 25)
+  • .moviepro <අංකය> <episode row#> — ඒ episode එකේ quality list
+  • .moviepro <අංකය> <episode row#> <quality#> — episode FILE එකම chat එකට (maxmb guard එකත් එක්ක)
+  • Source: CineSubz episode pipeline (episode page → zeta player ajax → direct mp4) —
+    series එක CineSubz එකේ නැත්නම් සිංහල උපසිරැසි link එක එනවා
+  • Movies flow එක වෙනස් වෙලා නෑ (movie file / link / trailer ඔක්කොම දැනට වගේ)
+
+v2.22.0 — ✨ Flow overhaul: bot එක දැන් hand-made bot එකක් වගේ කතා කරනවා
+  • ⏳ → ✅/❌ react flow — heavy command එකක් (download/movie/AI/...) ගැහුවම bot එක
+    ඔයාගේ message එකට ⏳ react කරනවා, ඉවර වුණාම ✅ (fail නම් ❌). Light commands වලට ✨ random react.
+  • Progress bubble auto-delete — "✅ ඉවරයි" වගේ status bubbles chat එකේ ඉතුරු වෙන්නේ නෑ:
+    file එක / link එක ආවම progress bubble එක මකලා දානවා. Chat එක පිරිසිදු.
+  • Captions minimal — 🎬 *title* + කොළ පාට blockquote එකේ `> ⚡ ᴋᴀᴠɪᴢ ᴍᴅ ᴠ1 · size · quality`
+    විතරයි. 👤/❤️/💬/👁️ emoji-stat walls අයින්. style.js — හැම message එකක්ම එකම voice.
+  • AI replies "— gemini" model නම පෙන්නන්නේ නෑ → `> ⚡ ᴋᴀᴠɪᴢ ᴀɪ`.
+  • .ping දැන් ms latency එකත් පෙන්නනවා (🏓 *Pong!* 42 ms).
+  • .menu + categories compact ✦ style — ලොකු පැහැදිලි කිරීම් පාරාග්‍රීන් අයින්, one-line commands.
+  • Errors කෙටියි — හේතුව එක පේළියක් + ඕනේ නම් විතරක් hint එකක් (details console log වල).
+
+v2.20.0 — 🚫 Anti-spam + block toolkit
+  • .block <නම්බර්|reply> — spammer කෙනෙක් block (server-side — ඒ number එකෙන්
+    ආයෙ messages/calls ඔයාට එන්නෙම නෑ). 076... / +94-76-... / 9476... format ඔක්කොම OK.
+  • .unblock <නම්බර්|reply>  •  .blocklist — block කරපු ලැයිස්තුව
+  • .antispam on|off|<N> — DM flood guard: මිනිත්තුවකට N (default 10) ට වැඩියෙන්
+    messages එවන කෙනෙක් → auto block + blocklist + spamlog + ඔයාට notice එකක්.
+    (පරණ history-sync messages ගණන් ගන්නෙ නෑ — false block නෑ; group/status skip)
+  • .spamlog — අලුත්ම auto/manual block සිදුවීම් 15
+  • ℹ️ Report flood එකක් නෑ: WhatsApp report කරන එකම පාර phone එකේ Report button එක
+    (එක number එකකින් bot reports යැව්වොත් ඔයාගෙම number එක ban වෙනවා — block එක තමයි
+    spammer ලාට safe + ස්ථිර විසඳුම). antispam.json — .update වලින් මෙන්නෙ නෑ.
+  • test_v220.js — 12 offline checks (flood/unblock/reply-block/history-guard...)
+
+v2.21.0 — 🔗 Mirror relay: file → direct share link (අනිත් bots වල /dl link UX එක)
+  • .mirror <link> (.link) — link එකේ file එක download කරලා browser එකෙන් උනේන
+    direct download link එකක් විදිහට යවනවා (video/file share වලට — status/grp).
+  • .tourl FIX — පරණ catbox host එක වැඩ කරන්නේ නෑ; දැන් qu.ax (දින 30) →
+    transfer.archivete.am (දින 7) fallback. Photo/video/audio/file reply → .tourl.
+  • .moviepro <අංකය> <quality#> link — movie එක WhatsApp file එකක් වෙනුවට direct link
+    එකක් විදිහට (500 status viewers ලාට share කරන්න ලේසි).
+  • mirror.js — upload chain: qu.ax (දින 30, ~950MB) → transfer (big files stream).
+    Proxy-pool fallback එකත් වැඩ (net.js smartFetch).
+  • ⚠️ Public links — sensitive/personal files .mirror/.tourl කරන්න එපා.
+
+v2.19.0 — 🍿 .moviepro — movie FILE එකම chat එකට (trailer නෙවෙයි!)
+  • .moviepro <අංකය> — info card එකට CineSubz quality list එකත් එනවා
+    (WEB-DL 480p / 720p / 1080p + size — cinesubz.net එකෙන් auto)
+  • .moviepro <අංකය> <quality#> (උදා: .moviepro 1 1) — movie file එකම
+    download කරලා document එකක් විදිහට chat එකට එනවා:
+    CineSubz zt-links gate decode → real CDN link (drive.csplayer2.space) →
+    live-check → download engine (stream, proxy pool fallback) → WhatsApp
+  • File එක server එකෙන් අයින් නම් / CDN එක player protection දැම්මොත් —
+    clean fallback: direct CDN link + CineSubz telegram link + gate link
+  • limit එකට වඩා ලොකු files (2GB+) — link එකම එනවා (.maxmb වෙනස් කරන්න පුළුවන්)
+  • .moviepro <අංකය> trailer — trailer option එකත් තියෙනවා (v2.18 විදිහටම)
+  • test_v219.js — 12 offline checks (gate decode/mapping/size/tg/card)
+
+v2.18.0 — 🎥 .moviepro (movies — in-chat interactive flow)
+  • .moviepro <movie නම> — IMDb (Cinemeta — free, key ඕනේ නෑ) search → results 8 දක්වා
+  • .moviepro <අංකය> — poster + ⭐rating + genres + description + IMDb link +
+    🇱🇰 සිංහල උපසිරැසි link (sinhalasub.lk) + download page (cinesubz.net)
+  • .moviepro <අංකය> trailer — trailer එක video විදිහට යවනවා (yt-dlp → clipto → pool)
+  • List එකට අංකය විතරක් reply කළත් වැඩ (.menu වගේම)
+  • අනිත් bots වල .moviepro වගේ නෙවෙයි (banner/webhook) — සම්පූර්ණ in-chat flow එකක්
+
+v2.17.0 — 🎬 eporner downloads + pool auto-refresh
+  • .download — eporner.com දැන් support: direct /dload/...mp4 links + video page links
+    (page links yt-dlp හරහා, formats + quality auto). CDN block වුණොත් pool route එකෙන් යනවා.
+  • Pool auto-refresh: alive proxies 8 ට අඩු වුණාම free proxy lists (monosans / TheSpeedX /
+    proxyscrape / roosterkid) වලින් අලුත් proxies auto ගෙනියනවා — pool එක හිස් වෙන්නේ නෑ.
+    (runtime pool එකට විතරයි — proxies.txt file එක වෙනස් වෙන්නේ නෑ; cache: proxies.cache.json)
+  • smartFetch: direct/DoH/IPv6 ඔක්කොම connect-fail වුණාම pool එක හිස් නම් තත්පර 20 ක් ඇතුළට
+    fresh fetch + check කරලා pool එකෙන්ම try කරනවා (first blocked download එකේදීත් pool එක ලැබෙනවා).
+  • .proxies — auto-fetched count එකත් පෙන්නනවා.
+
+v2.16.0 — 🧩 Free Proxy Pool (IP block වුණාම auto fallback)
+  • proxies.txt (434 proxies) bot එකේම එනවා. Start වෙද්දී background check එකකින් "වැඩ කරන" ඒවා හොයාගන්නවා
+    (results cache වෙනවා, විනාඩි 20 කට සැරයක් refresh).
+  • Direct / DNS bypass / IPv6 / ඔයාගේ .setproxy එකෙන් බැරි වුණොත් විතරයි pool එකෙන් try කරන්නේ —
+    ඒ නිසා සාමාන්‍ය downloads වලට කිසිම බාධාවක් නෑ. YouTube bot-check / FB / TikTok block වලටත් yt-dlp
+    හරහාම pool proxies පාවිච්චි වෙනවා.
+  • .proxies — pool status  •  .proxies check — දැන්ම check  •  .proxies on / off
+  • ඔයාගේම proxies: bot folder එකේ proxies.user.txt (ip:port lines) — .update වෙද්දී මැකෙන්නේ නෑ.
+  💡 Free proxies ගොඩක් ඉක්මනට මැරෙනවා — හොඳම විසඳුම .setcookies (YouTube) + ඔයාගේම proxy එකක් (.setproxy).
+
+v2.15.0 — KAVIZ MD V1 rebrand + downloader fixes
+  • .yt / .video — ALL qualities (2160p → 144p; quality නැතුව = best) + clipto.com fallback (YouTube bot-check)
+  • .fb / .facebook / .faceboock / .fbvid — FB page-scrape fallback  •  .tiktok — vm/vt short links + retries
+  • yt-dlp bot start වෙද්දීම auto-update (stale extractor = FB "Cannot parse data" fix)
+
+v2.13.1 — 🧬 Anti-Bug Instituts visthara (status + contacts + invisible bugs)
+  • Status (status@broadcast) + newsletters tik scan kellayi: bug ekak → delete for me + report (block karanne na)
+  • Contact card bombs: vCard ekak TEL 20+ / lines 200+ → catch
+  • Pure invisible messages ( productive text eka) + long unbroken runs (8000+) → catch
+  • Variation selectors ( productive chars flood) → catch
+  • *.antibug scan* — sudden caught bugs list eka balanna
+
+v2.13.0 — 🧬 Anti-Bug (WhatsApp bug / crash messages වලින් ආරක්ෂාව)
+  කවුරු හරි WhatsApp එක hang/crash කරන "bug" message එකක් එව්වොත් bot එක:
+   1. ඒ message එක ඔයාට delete කරනවා → phone එකටත් sync වෙනවා, chat එක ආයෙත් open කරන්න පුළුවන්
+   2. group එකක නම් + bot (ඔයා) admin නම් → හැමෝටම delete
+   3. private chat එකක ලොකු bug එකක් නම් → එව්ව කෙනාව block   (.antibug block off = block එපා)
+   4. Message yourself chat එකට කෙටි report එකක් (bug text එක නැතුව)
+  අල්ලන දේවල්: crash අකුරු (virtex), අකුරු 12k+ texts, mentions 256+, contacts 40+, buttons/poll options 60+,
+               අති විශාල fields (location / buttons / lists), nesting 14+, තත්පර 10ට messages 25+ (flood)
+  Commands: .antibug  •  .antibug on / off  •  .antibug block on / off   (default: ON)
+  ⚠️ Bug message එක phone එකටත් එකම වෙලාවේ එන නිසා ඒ chat එක screen එකේ open නම් තත්පරයක් දෙකක් hang වෙන්න පුළුවන්.
+     අලුත්ම වර්ගයක bug එකක් අල්ලගන්න බැරි වෙන්නත් පුළුවන් — එහෙම වුණොත් screenshot එකක් එවන්න.
+
+v2.12.2 — 🔒 ආරක්ෂාව + 📨 Agent messages
+  • WhatsApp library එක (libsignal) encryption keys panel console එකට print කළා → දැන් ඒවා පේන්නේ නෑ
+  • KAVIZ agent ට panel එකේ agent-msg.txt file එකක් ලියලා ඔයාගේ "Message yourself" chat එකට message යවන්න පුළුවන්
+    (bot එක තත්පර 5 කට සැරයක් බලනවා, යැව්වට පස්සේ file එක මකනවා)
+
+v2.12.1 — 📦 ලොකු files (2 GB දක්වා)
+  • Panel එකේ පරණ 350 MB limit එක අයින් කළා → දැන් 2000 MB (WhatsApp එකෙන් යවන්න පුළුවන් උපරිමය ≈ 2 GB)
+  • 100 MB ට ලොකු files disk එකේ save නොකර කෙලින්ම WhatsApp එකට stream වෙනවා → disk එක 2× නෙවෙයි 1× විතරයි
+  • .maxmb  → දැන් limit එක + disk free     .maxmb 1000 / .maxmb 2gb → වෙනස් කරන්න (max 2000)
+  • Disk එකේ ඉඩ මදි නම් download එක පටන් ගන්න කලින්ම පැහැදිලි error එකක්
+  ⚠️ 2 GB ට ලොකු (6 GB වගේ) files WhatsApp එකෙන් යවන්න බෑ — ඒක WhatsApp limit එකක්
+
+v2.12 — 🛠️ TOOLS update (Knightbot-MD bot එකේ ideas, අපේම code එකෙන් ස්ථාවර free APIs වලින්)
+  🌐 .tr <භාෂාව> <text>  → translate (message එකකට reply කරලා .tr si) — si en ta hi ja ko ...
+  🗣️ .tts <text>  → voice note (සිංහල auto)      🌍 .weather <නගරය>  → කාලගුණය + දින 3
+  🎤 .lyrics <සින්දුව>      🎨 .imagine <විස්තරය>  → AI image (සිංහලෙනුත් ලියන්න පුළුවන්)
+  🖼️ .toimg (sticker reply) → photo      🔗 .tourl (media reply) → download link
+  📸 .ss <website>  •  🔳 .qr <text>  •  ✂️ .short <link>  •  🧮 .calc (25+15)*3 / 15% of 2000
+  🐙 .github <user>  •  🗑️ .del (reply → message එක මකනවා, ඕනෑම chat එකක)  •  .setpp (photo → profile)
+  🎉 .joke  •  .fact (+සිංහල)  •  .quote  •  .8ball <ප්‍රශ්නය>
+  👥 Group: .mute  .unmute  .tagadmins  .resetlink
+  Menu: categories 13 (6 = Tools, 7 = Fun)
+  Credit: command ideas — Knightbot-MD by mruniquehacker (MIT). Code එක අලුතෙන් ලිව්වේ.
+
+v2.11 — 🚀 SUPER update (abc repo එකේ SmokeBoy bot එකෙන් ගත්ත features)
+  🎬 .yts <නම>  •  .song <නම/link> (audio)  •  .video <නම/link> (720p→360p)
+  📱 .tiktok (watermark නෑ)  •  .fb  •  .ig  •  .x   <link>
+  🔍 .wiki <මාතෘකාව>  (.wiki si ... = සිංහල)   🐙 .gitclone user/repo → zip
+  🖼️ .s = photo/video → sticker (video තත්පර 6)  •  .take Pack | Author
+  👥 Group (ඔයා group එකේ ගැහුවොත්): .groupinfo .grouplink .tagall .kick .promote .demote .jid
+  🔄 .restart
+  • Panel: පළමු .song/.video/.s එකේදී yt-dlp (40MB) + ffmpeg (80MB) auto download වෙනවා (විනාඩියක් විතර).
+  • Termux: pkg install yt-dlp ffmpeg   (termux-setup.sh එක දැන් ඒකත් කරනවා)
+  • YouTube සමහර server IPs වලට "bot check" දානවා — එහෙම වුණොත් bot එක පැහැදිලිව කියනවා.
+
+v2.10 — 📋 ලස්සන .menu + ✨ auto react
+  • .menu — photo + BOT INFO box (version, uptime, RAM, host) + categories 6.
+    Number එක reply කරන්න (උදා 1 = Download) → ඒ category එකේ commands.  .help = full list.
+  • Commands ගහද්දී random emoji react එකක් (⚡🔥✨🚀...).  .react off / .react on
+
+v2.9 — 🖼️ ලස්සන online card එක (photo + කෙටි status)
+  • Bot start වුණාම / .update එකෙන් පස්සේ photo එකක් එක්ක පොඩි card එකක් එනවා.  .alive = ඕනෑම වෙලාවක බලන්න.
+  • .setlogo — ඔයාගේ photo එක Message yourself chat එකට යවලා ඒකට reply කරලා .setlogo ගහන්න (update වලින් මැකෙන්නේ නෑ).
+  • .dellogo — default KAVIZ MD V1 banner එකට ආපහු.
+
+v2.8 — 🔒 සම්පූර්ණ Safe mode + 🛡️ Anti-ban
+  • Commands පාවිච්චි කරන්න පුළුවන් ඔයාට විතරයි (fromMe + sender double check). වෙන කෙනෙක් ගැහුවොත් reply එකක්වත් නෑ.
+  • Default: "Message yourself" chat එකේ විතරයි වැඩ.  .mode all = ඔයා ඕනෑම chat එකක ගහන commands වැඩ.
+  • Anti-ban: විනාඩියට commands 10 / පැයට 120 limit, reply කලින් පොඩි human delay, messages එකින් එක යවනවා,
+    reconnect backoff (3s→5min), ban (403) වුණොත් / වෙන තැනක එකම bot එක run වුණොත් (440) නවතිනවා,
+    "online" message පැය 6 කට එක පාරයි, download එකකට links 5 යි, එක පාරට download එකයි.
+  • API keys / proxy password console log එකේ පේන්නේ නෑ. Panel status page එකේ number එක පේන්නේ නෑ.
+  ⚠️ කිසිම bot එකක් 100% ban-proof නෑ — spam නොකර, එක instance එකක් විතරක් run කරන්න.
+
+v2.7 — IPv6 route: CDN එකක් server එකේ IPv4 block කළොත් මුළු download chain එකම IPv6 එකෙන් ආයෙත් try කරනවා
+  (server එකට IPv6 තියෙනවා නම්). .net එකේ Server IPv6 + hop එකට IPv6 TCP test පෙන්නනවා.
+
+v2.6 — Block වෙන sites fix:
+  • Download එකක් network error එකකින් fail වුණොත් bot එක ඉබේම DNS-over-HTTPS (1.1.1.1/8.8.8.8) එකෙන් ආයෙත් try කරනවා
+    (server එකේ ISP/රට DNS block කරනවා නම් ඒක පනිනවා). වැඩ කරපු route එක මතක තියාගන්නවා.
+  • .net <link> — server එකෙන් ඒ site එකට යන්න පුළුවන්ද, DNS block ද IP block ද කියලා report එකක්.
+  • .setproxy http://user:pass@host:port — IP block වෙන sites වලට proxy (off: .setproxy off).
+
+v2.5 — Updates දැන් එන්නේ අලුත් repo එකෙන්: https://github.com/matheeshasanjana83-alt/Arena-Ai-WA-BOT
+  (.update / .version ඒ විදියටම. Panel එකේත් වැඩ — launcher එක bot එක auto restart කරනවා.)
+
+v2.4 — Server/panel (HeavenCloud) support:
+  index.js = panel entry (npm start එකමයි). Panel එකේ temp files server disk එකේ (.tmp), file limit 350MB.
+  Phone number එක settings.json එකේ "phone" විදියටත් දාන්න පුළුවන්. Panel zip: KAVIZ-MD-V1-panel.zip (files root එකේ).
+
+v2.3 fix: bot එකේ replies phone එකේ "Waiting for this message" කියලා පෙන්නපු එක.
+  Baileys v7 self-chat messages වලට device/LID jid එකක් (35189...:0@lid) දෙනවා; ඒකට reply කළාම phone එකට decrypt
+  කරන්න බෑ. දැන් self-chat replies හැම වෙලාවෙම ඔයාගේ phone-number JID (94...@s.whatsapp.net) එකට යනවා.
+
+v2.2 — .update command:
+  .update          GitHub (matheeshasanjana83-alt/abc → arena-ai-bot/) එකෙන් අලුත් files අරන් auto restart.
+                   auth/ (WhatsApp link) + settings.json (API keys) කවදාවත් වෙනස් කරන්නේ නෑ → pair කරන්න ඕනේ නෑ.
+  .update force    එකම version එක ආයෙත් install කරන්න
+  .version         දැන් version එක + update තියෙනවද
+  • අලුත් files වල error එකක් තිබ්බොත් install කරන්නේම නෑ. Install වුණාට පස්සේ crash වුණොත් පරණ version එකට auto rollback.
+  • Auto restart වෙන්න bot එක *npm start* එකෙන් start කරන්න ඕනේ (launcher.js).
+
+v2.1 fix (commands වැඩ නොකළ ප්‍රශ්නය):
+  • Baileys 6.7 (legacy) → 7.0.0-rc14. WhatsApp LID ක්‍රමයට මාරු වුණු නිසා 6.7 ට ඔයාගේ phone එකෙන් එන
+    messages decrypt කරන්න බැරි වුණා ("Bad MAC") → commands bot එකට පේන්නේ නෑ. v7 එකේ LID support තියෙනවා.
+    (6.7 delivery ACKs යවනවා — WhatsApp ban කරනවා කියලා Baileys docs කියනවා; v7 යවන්නේ නෑ)
+  • 'append' type messages ද process කරනවා, getMessage retry fix ("Waiting for this message"), online msg එක එක පාරයි.
+  • 6.7 session එක v7 එකට පාවිච්චි කරන්න එපා → auth folder එක මකලා අලුතෙන් pair කරන්න.
+
+Update (පරණ version එකෙන්):
+  WhatsApp → Linked devices → පරණ bot device එක Log out කරන්න
+  cd ~ && curl -L -o KAVIZ-MD-V1.zip https://raw.githubusercontent.com/matheeshasanjana83-alt/Arena-Ai-WA-BOT/main/downloads/KAVIZ-MD-V1.zip && unzip -o KAVIZ-MD-V1.zip
+  cd ~/KAVIZ-MD-V1 && rm -rf auth node_modules package-lock.json && npm install --legacy-peer-deps && npm start
+
+Termux setup:
+  pkg install -y curl unzip
+  cd ~ && curl -L -o KAVIZ-MD-V1.zip https://raw.githubusercontent.com/matheeshasanjana83-alt/Arena-Ai-WA-BOT/main/downloads/KAVIZ-MD-V1.zip && unzip -o KAVIZ-MD-V1.zip
+  cd ~/KAVIZ-MD-V1 && bash termux-setup.sh
+  termux-wake-lock
+  npm start
+ආයෙත් start:  cd ~/KAVIZ-MD-V1 && termux-wake-lock && npm start
+Re-pair:       cd ~/KAVIZ-MD-V1 && rm -rf auth && npm start
+Test:          npm test
+
+v2.32.0 — 🛡️ Anti-Bug v2: MishuCrasher-class bug panels වල හැම attack එකක්ම cover
+  • අලුත් detectors: සිංහල විරාම/සංඥා storms (්ා්ා…), combining-mark storms, control-char storms,
+    invisible filler floods, media dimension bombs (99999×99999 images), location coordinate bugs,
+    giant waveform arrays, duration bombs — සාමාන්‍ය සිංහල/Arabic/emoji/4K video false-positive නෑ
+  • .antibug test — bug-payload self-test (memory-only; ඔයාගේ chat එකට කිසිවක් යවන්නේ නෑ)
+  • පරණ වැඩ ඔක්කොම: auto delete (මට + group admin) · severe bug → sender block · "Message yourself" report · .antibug scan
+
+v2.69.0
+ - 🩺 YouTube PO-token path: BotGuard token (bgutils) yt-dlp + innertube වලට — ".song/.video වැඩ නෑ" (Sign in to confirm) gates වලට අලුත්ම counter
+ - 🌸 Pollinations AI key එක ඇතුළත්: .ai දැන් කවදාවත් නවතින්නේ නෑ (Gemini/Groq down වුණත් auto fallback)
+ - 🎨 .imagine/.img — keyed Pollinations flux (වේගවත් + reliable)
+ - 🗣️ .tts — Google TTS fail වුණොත් nova voice fallback
+ - 🎙️ අලුත් .stt — voice note එකකට reply කරලා → කථාව text වෙලා එනවා (whisper)
+ - 🩺 /diag?pot=1 — PO token live probe
