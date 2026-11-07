@@ -21,12 +21,11 @@ COPY . .
 RUN npm install --ignore-scripts \
  && npm install --ignore-scripts --no-save @huggingface/hub
 
-# HF Spaces container එක UID 1000 ට run වෙනවා — app folder එකට write permission ඕන
-# (auth/, settings.json, .backup/ ඒවා runtime එකේ හැදෙන නිසා)
-RUN useradd -m -u 1000 user \
- && chown -R user:user /app
+# runtime එකේ app folder එකට write permission ඕන (auth/, settings.json, .backup/, .tmp/)
+# node:20-slim image එකේම UID 1000 `node` user එක තියෙනවා — ඒකම පාවිච්චි කරනවා
+RUN chown -R node:node /app
 
-USER user
+USER node
 
 EXPOSE 7860
 
