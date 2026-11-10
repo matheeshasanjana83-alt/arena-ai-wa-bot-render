@@ -356,9 +356,9 @@ async function cmdMirror(send, jid, msg, args, react) {
     // 🌊 stream-pipe: source → transfer.archivete.am (~7d / 100 downloads) — 1GB+ movies OK
     try {
         const urlName = decodeURIComponent(((new URL(u)).pathname.split('/').pop() || '').trim());
-        const r = await mirror.streamToTransfer(u, { total, onProgress, name: (probe && probe.name) || urlName || 'file.bin' });
+        const r = await mirror.streamUpload(u, { total, onProgress, name: (probe && probe.name) || urlName || 'file.bin' });
         react?.('✅');
-        return await edit(`🔗 *${r.name}*\n${r.url}\n${foot(`${(r.loaded / 1048576).toFixed(1)} MB · transfer.archivete.am · ~7d / 100 downloads`)}\n> 💾 link එක browser එකෙන් download කරන්න (ලොකු files disk එකට නොගෙන stream කළා)`);
+        return await edit(`🔗 *${r.name}*\n${r.url}\n${foot(`${(r.loaded / 1048576).toFixed(1)} MB · ${r.host} · ~${r.days}d`)}\n> 💾 link එක browser එකෙන් download කරන්න (ලොකු files disk එකට නොගෙන stream කළා)`);
     } catch (e) {
         return await edit(`❌ stream mirror fail: ${String(e.message || e).slice(0, 140)}\n> ටිකකින් ආයෙත් try කරන්න`);
     }

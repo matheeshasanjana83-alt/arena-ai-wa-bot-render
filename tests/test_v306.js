@@ -1,7 +1,7 @@
 'use strict';
 /**
  * test_v306.js — 🌊 .mirror STREAM-PIPE (v3.06.0)
- * probeSize (HEAD → 1-byte Range GET) + streamToTransfer (source body → transfer.archivete.am
+ * probeSize (HEAD → 1-byte Range GET) + streamUpload (source body → transfer.archivete.am
  * PUT, zero disk / zero RAM buffering) — lets .mirror relay 1GB+ movies on 512MB-disk hosts
  * without ever touching the disk (bot-hosting ceiling: "need 300+ MB, only 269.2 MB free").
  */
@@ -31,15 +31,15 @@ const checkA = async (n, fn, soft) => { try { await fn(); ok(n); } catch (e) { i
 
     // [2] mirror.js exports the new functions
     const mirror = require('../mirror');
-    check('[2] mirror exports probeSize + streamToTransfer', () => {
+    check('[2] mirror exports probeSize + streamUpload', () => {
         assert.strictEqual(typeof mirror.probeSize, 'function', 'probeSize');
-        assert.strictEqual(typeof mirror.streamToTransfer, 'function', 'streamToTransfer');
+        assert.strictEqual(typeof mirror.streamUpload, 'function', 'streamUpload');
     });
 
     // [3] source markers — cmdMirror branches + menu line
     check('[3] tools.js stream branch + bot.js menu line', () => {
         const t = fs.readFileSync(path.join(R, 'tools.js'), 'utf8');
-        assert(t.includes('mirror.streamToTransfer'), 'tools uses streamToTransfer');
+        assert(t.includes('mirror.streamUpload'), 'tools uses streamUpload');
         assert(t.includes('mirror.probeSize'), 'tools probes size first');
         assert(t.includes('fitsDisk'), 'disk-fit decision');
         assert(t.includes('bigOrUnknown'), 'big/unknown branch');
@@ -58,20 +58,20 @@ const checkA = async (n, fn, soft) => { try { await fn(); ok(n); } catch (e) { i
 
     // [5] LIVE full-cycle: direct-file source → stream-pipe → transfer link → bytes match
     //     (same code path a 1GB movie takes, just with a 2KB payload;
-    //      seed via upTransfer because qu.ax short links serve an HTML viewer, not the raw file)
-    await checkA('[5] LIVE stream round-trip transfer → transfer → bytes match', async () => {
+    //      seed via upTransfer (direct-file URL) because qu.ax short links serve an HTML viewer)
+    await checkA('[5] LIVE stream round-trip → chain host → bytes match', async () => {
         const payload = Buffer.from('kaviz v306 stream-pipe test ' + Date.now() + ' · ' + 'x'.repeat(2048));
         const seed = await mirror.upTransfer(payload, 'kaviz-v306-src.txt');
         assert(/^https?:\/\//.test(seed.url), 'seed url: ' + seed.url);
         let ticks = 0;
-        const out = await mirror.streamToTransfer(seed.url, {
+        const out = await mirror.streamUpload(seed.url, {
             total: payload.length,
             name: 'kaviz-v306-out.txt',
             onProgress: () => { ticks++; },
         });
         assert(/^https?:\/\//.test(out.url), 'out url: ' + out.url);
         assert.strictEqual(out.loaded, payload.length, 'loaded=' + out.loaded + ' want ' + payload.length);
-        assert(out.host === 'transfer', 'host=' + out.host);
+        assert(['x0at', 'filebin', 'transfer'].includes(out.host), 'host=' + out.host);
         assert(ticks >= 1, 'progress ticked');
         const res = await fetch(out.url);
         assert(res.ok, 'GET out url → ' + res.status);

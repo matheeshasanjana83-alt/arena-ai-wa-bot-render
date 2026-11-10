@@ -12,7 +12,7 @@
  * All uploads go through net.js smartFetch (proxy-pool fallback included).
  */
 const fs = require('fs');
-const { Readable, Transform } = require('stream');
+const { Readable, Transform, PassThrough } = require('stream');
 
 let netMod = null;
 try { netMod = require('./net'); } catch { }
@@ -132,43 +132,97 @@ async function probeSize(u) {
     return { total, mime, isHtml: mime === 'text/html', name };
 }
 
-/** 🌊 v3.06 — LIVE remote stream → transfer.archivete.am PUT (zero disk / zero RAM buffering).
- *  .mirror big-file path: a 512MB host can't hold a 1GB movie — pipe the source body straight
- *  into the PUT body instead (transfer.sh protocol accepts chunked, no content-length needed).
- *  Byte-count Transform = progress; 90s stall watchdog = a frozen CDN can never hang the lane. */
-async function streamToTransfer(u, opts = {}) {
+/** 🌊 v3.06 — compose [head][src][tail] multipart on the fly (chunked — no content-length
+ *  needed; x0.at accepts it, `cat f | curl -F file=@- https://x0.at` proved it live). */
+function multipartStream(srcNode, name) {
+    const b = 'KV' + Date.now().toString(36) + Math.round(Math.random() * 1e9).toString(36);
+    const head = Buffer.from('--' + b + '\r\nContent-Disposition: form-data; name="file"; filename="' + safeName(name) + '"\r\nContent-Type: application/octet-stream\r\n\r\n');
+    const tail = Buffer.from('\r\n--' + b + '--\r\n');
+    const out = new PassThrough();
+    out.write(head);
+    srcNode.on('error', (e) => out.destroy(e));
+    srcNode.pipe(out, { end: false });
+    srcNode.on('end', () => out.end(tail));
+    return { stream: out, boundary: b };
+}
+
+/** 🌊 v3.06 — remote URL → STREAMING upload chain (zero disk / zero RAM buffering, any size).
+ *  2026-11 live probe (bot container): transfer.archivete.am PUT = 403 (datacenter block),
+ *  0x0.st = uploads disabled, pixeldrain = 401 API-key-only → working chain:
+ *    1. x0.at     — multipart chunked POST · ≤1024MiB · 3-100d retention (size-based)
+ *    2. filebin.net — raw PUT · bins live 6d · direct ?dl=1 download link
+ *    3. transfer.archivete.am — kept as last resort in case its 403 phase ends
+ *  Source is re-GET per attempt (a body can only be consumed once) · 90s stall watchdog per hop. */
+async function streamUpload(u, opts = {}) {
     const { total = 0, onProgress = null, name = 'file.bin', signal = null } = opts;
-    const r = await fetchFn(u, { headers: { ...UA }, redirect: 'follow', ...(signal ? { signal } : {}) });
-    if (!r.ok) throw new Error('server එකෙන් HTTP ' + r.status);
-    const mime = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-    if (mime === 'text/html') { try { await r.body?.cancel(); } catch { } throw new Error('මේ link එකෙන් එන්නේ web page එකක් — direct download link එකක් එවන්න'); }
-    const sz = total || parseInt(r.headers.get('content-length') || '0', 10) || 0;
-    let loaded = 0, lastData = Date.now(), lastTick = 0;
-    const counter = new Transform({
-        transform(chunk, _enc, cb) {
-            loaded += chunk.length; lastData = Date.now();
-            if (onProgress && Date.now() - lastTick > 6000) { lastTick = Date.now(); try { onProgress(loaded, sz); } catch { } }
-            if (sz && loaded > sz + 1048576) return cb(new Error('size overflow'));
-            cb(null, chunk);
-        },
-        flush(cb) { try { if (onProgress) onProgress(loaded, sz || loaded); } catch { } cb(); }
-    });
-    const src = Readable.fromWeb(r.body);   // undici fetch body = WEB stream (.on නෑ) — fromWeb ඕනේ
-    src.on('error', (e) => counter.destroy(e));
-    const wd = setInterval(() => { if (Date.now() - lastData > 90e3) counter.destroy(new Error('stream stall (90s data නෑ)')); }, 30e3);
-    try {
-        const rr = await fetchFn('https://transfer.archivete.am/' + safeName(name), {
-            method: 'PUT',
-            body: Readable.toWeb(src.pipe(counter)),
-            duplex: 'half',
-            headers: { ...UA, 'Content-Type': 'application/octet-stream' },
-            ...(signal ? { signal } : {}),
+    const X0_MAX = 1024 * 1048576;
+    const chain = total > X0_MAX ? ['filebin', 'transfer'] : ['x0at', 'filebin', 'transfer'];
+    let lastErr = null;
+    for (const host of chain) {
+        let r;
+        try { r = await fetchFn(u, { headers: { ...UA }, redirect: 'follow', ...(signal ? { signal } : {}) }); }
+        catch (e) { lastErr = e; continue; }
+        if (!r.ok) { try { await r.body?.cancel(); } catch { } lastErr = new Error('server එකෙන් HTTP ' + r.status); continue; }
+        const mime = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        if (mime === 'text/html') { try { await r.body?.cancel(); } catch { } throw new Error('මේ link එකෙන් එන්නේ web page එකක් — direct download link එකක් එවන්න'); }
+        const sz = total || parseInt(r.headers.get('content-length') || '0', 10) || 0;
+        let loaded = 0, lastData = Date.now(), lastTick = 0;
+        const counter = new Transform({
+            transform(chunk, _enc, cb) {
+                loaded += chunk.length; lastData = Date.now();
+                if (onProgress && Date.now() - lastTick > 6000) { lastTick = Date.now(); try { onProgress(loaded, sz); } catch { } }
+                if (sz && loaded > sz + 1048576) return cb(new Error('size overflow'));
+                cb(null, chunk);
+            },
+            flush(cb) { try { if (onProgress) onProgress(loaded, sz || loaded); } catch { } cb(); }
         });
-        const t = (await rr.text()).trim();
-        if (!/^https?:\/\//.test(t)) throw new Error('transfer HTTP ' + rr.status + ' ' + t.slice(0, 60));
-        const del = rr.headers.get('x-url-delete') || null;
-        return { url: t, host: 'transfer', days: 7, del, loaded, name: safeName(name) };
-    } finally { clearInterval(wd); try { src.destroy(); } catch { } }
+        const src = Readable.fromWeb(r.body);   // undici fetch body = WEB stream — fromWeb ඕනේ
+        src.on('error', (e) => counter.destroy(e));
+        src.pipe(counter);
+        const wd = setInterval(() => { if (Date.now() - lastData > 90e3) counter.destroy(new Error('stream stall (90s data නෑ)')); }, 30e3);
+        try {
+            if (host === 'x0at') {
+                const mp = multipartStream(counter, name);
+                const rr = await fetchFn('https://x0.at/', {
+                    method: 'POST', body: Readable.toWeb(mp.stream), duplex: 'half',
+                    headers: { ...UA, 'Content-Type': 'multipart/form-data; boundary=' + mp.boundary },
+                    ...(signal ? { signal } : {}),
+                });
+                const t = (await rr.text()).trim();
+                if (rr.ok && /^https?:\/\//.test(t)) {
+                    const days = sz ? Math.max(3, Math.round(3 + 97 * Math.pow(1 - Math.min(sz, X0_MAX) / X0_MAX, 2))) : 30;
+                    return { url: t, host: 'x0at', days, loaded, name: safeName(name) };
+                }
+                throw new Error('x0.at HTTP ' + rr.status + ' ' + t.slice(0, 50));
+            }
+            if (host === 'filebin') {
+                const bin = 'kv' + Date.now().toString(36) + Math.round(Math.random() * 1e9).toString(36);
+                const fname = safeName(name);
+                const rr = await fetchFn('https://filebin.net/' + bin + '/' + fname, {
+                    method: 'PUT', body: Readable.toWeb(counter), duplex: 'half',
+                    headers: { ...UA, 'Content-Type': 'application/octet-stream' },
+                    ...(signal ? { signal } : {}),
+                });
+                if (rr.status !== 201) throw new Error('filebin HTTP ' + rr.status);
+                try { await rr.body?.cancel(); } catch { }
+                return { url: 'https://filebin.net/' + bin + '/' + fname + '?dl=1', host: 'filebin', days: 6, loaded, name: fname };
+            }
+            // transfer.archivete.am — last resort (2026-11: 403 from datacenter IPs)
+            const rr = await fetchFn('https://transfer.archivete.am/' + safeName(name), {
+                method: 'PUT', body: Readable.toWeb(counter), duplex: 'half',
+                headers: { ...UA, 'Content-Type': 'application/octet-stream' },
+                ...(signal ? { signal } : {}),
+            });
+            const t = (await rr.text()).trim();
+            if (!/^https?:\/\//.test(t)) throw new Error('transfer HTTP ' + rr.status + ' ' + t.slice(0, 60));
+            const del = rr.headers.get('x-url-delete') || null;
+            return { url: t, host: 'transfer', days: 7, del, loaded, name: safeName(name) };
+        } catch (e) {
+            lastErr = e;
+            try { src.destroy(); } catch { }
+        } finally { clearInterval(wd); }
+    }
+    throw lastErr || new Error('upload hosts හැම එකක්ම fail');
 }
 
 /** Buffer → best host (qu.ax 30d first, transfer fallback) */
@@ -185,4 +239,4 @@ async function uploadFile(filePath, name) {
     return await upTransfer(filePath, name);
 }
 
-module.exports = { uploadBuffer, uploadFile, upQuax, upTransfer, upGofile, upTmpfiles, probeSize, streamToTransfer, TMPFILES_MAX, QUAX_MAX, BUF_MAX };
+module.exports = { uploadBuffer, uploadFile, upQuax, upTransfer, upGofile, upTmpfiles, probeSize, streamUpload, TMPFILES_MAX, QUAX_MAX, BUF_MAX };
