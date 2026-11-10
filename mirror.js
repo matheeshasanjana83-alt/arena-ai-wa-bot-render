@@ -12,7 +12,7 @@
  * All uploads go through net.js smartFetch (proxy-pool fallback included).
  */
 const fs = require('fs');
-const { Readable } = require('stream');
+const { Readable, Transform } = require('stream');
 
 let netMod = null;
 try { netMod = require('./net'); } catch { }
@@ -103,6 +103,74 @@ async function upTmpfiles(buf, name, opts = {}) {
     return { url: u, host: 'tmpfiles', days: 0.04 };   // ~1h — the command formats this as ⏳ 60 min
 }
 
+/** 🌊 v3.06 — cheap size probe (HEAD, then 1-byte Range GET fallback) → { total, mime, isHtml, name }.
+ *  No body download — lets .mirror decide disk-path vs stream-pipe BEFORE pulling anything. */
+async function probeSize(u) {
+    let total = 0, mime = '', name = '';
+    try {
+        const r = await fetchFn(u, { method: 'HEAD', headers: { ...UA }, redirect: 'follow' });
+        if (r.ok) {
+            total = parseInt(r.headers.get('content-length') || '0', 10) || 0;
+            mime = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        }
+        try { await r.body?.cancel(); } catch { }
+    } catch { }
+    if (!total || !mime) {
+        // HEAD blocked/405/missing length → 1-byte Range GET: content-range "bytes 0-0/12345" gives real size
+        try {
+            const g = await fetchFn(u, { headers: { ...UA, Range: 'bytes=0-0' }, redirect: 'follow' });
+            if (g.ok) {
+                const m = (g.headers.get('content-range') || '').match(/\/(\d+)\s*$/);
+                if (m) total = parseInt(m[1], 10) || total;
+                mime = mime || (g.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+                const nm = (g.headers.get('content-disposition') || '').match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+                if (nm) name = decodeURIComponent(nm[1]);
+            }
+            try { await g.body?.cancel(); } catch { }
+        } catch { }
+    }
+    return { total, mime, isHtml: mime === 'text/html', name };
+}
+
+/** 🌊 v3.06 — LIVE remote stream → transfer.archivete.am PUT (zero disk / zero RAM buffering).
+ *  .mirror big-file path: a 512MB host can't hold a 1GB movie — pipe the source body straight
+ *  into the PUT body instead (transfer.sh protocol accepts chunked, no content-length needed).
+ *  Byte-count Transform = progress; 90s stall watchdog = a frozen CDN can never hang the lane. */
+async function streamToTransfer(u, opts = {}) {
+    const { total = 0, onProgress = null, name = 'file.bin', signal = null } = opts;
+    const r = await fetchFn(u, { headers: { ...UA }, redirect: 'follow', ...(signal ? { signal } : {}) });
+    if (!r.ok) throw new Error('server එකෙන් HTTP ' + r.status);
+    const mime = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (mime === 'text/html') { try { await r.body?.cancel(); } catch { } throw new Error('මේ link එකෙන් එන්නේ web page එකක් — direct download link එකක් එවන්න'); }
+    const sz = total || parseInt(r.headers.get('content-length') || '0', 10) || 0;
+    let loaded = 0, lastData = Date.now(), lastTick = 0;
+    const counter = new Transform({
+        transform(chunk, _enc, cb) {
+            loaded += chunk.length; lastData = Date.now();
+            if (onProgress && Date.now() - lastTick > 6000) { lastTick = Date.now(); try { onProgress(loaded, sz); } catch { } }
+            if (sz && loaded > sz + 1048576) return cb(new Error('size overflow'));
+            cb(null, chunk);
+        },
+        flush(cb) { try { if (onProgress) onProgress(loaded, sz || loaded); } catch { } cb(); }
+    });
+    const src = Readable.fromWeb(r.body);   // undici fetch body = WEB stream (.on නෑ) — fromWeb ඕනේ
+    src.on('error', (e) => counter.destroy(e));
+    const wd = setInterval(() => { if (Date.now() - lastData > 90e3) counter.destroy(new Error('stream stall (90s data නෑ)')); }, 30e3);
+    try {
+        const rr = await fetchFn('https://transfer.archivete.am/' + safeName(name), {
+            method: 'PUT',
+            body: Readable.toWeb(src.pipe(counter)),
+            duplex: 'half',
+            headers: { ...UA, 'Content-Type': 'application/octet-stream' },
+            ...(signal ? { signal } : {}),
+        });
+        const t = (await rr.text()).trim();
+        if (!/^https?:\/\//.test(t)) throw new Error('transfer HTTP ' + rr.status + ' ' + t.slice(0, 60));
+        const del = rr.headers.get('x-url-delete') || null;
+        return { url: t, host: 'transfer', days: 7, del, loaded, name: safeName(name) };
+    } finally { clearInterval(wd); try { src.destroy(); } catch { } }
+}
+
 /** Buffer → best host (qu.ax 30d first, transfer fallback) */
 async function uploadBuffer(buf, name) {
     if (buf.length <= QUAX_MAX) { try { return await upQuax(buf, name); } catch { } }
@@ -117,4 +185,4 @@ async function uploadFile(filePath, name) {
     return await upTransfer(filePath, name);
 }
 
-module.exports = { uploadBuffer, uploadFile, upQuax, upTransfer, upGofile, upTmpfiles, TMPFILES_MAX, QUAX_MAX, BUF_MAX };
+module.exports = { uploadBuffer, uploadFile, upQuax, upTransfer, upGofile, upTmpfiles, probeSize, streamToTransfer, TMPFILES_MAX, QUAX_MAX, BUF_MAX };

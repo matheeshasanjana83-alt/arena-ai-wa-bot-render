@@ -308,7 +308,8 @@ async function cmdMirror(send, jid, msg, args, react) {
         if (mediaOf(msg)) return cmdToUrl(send, jid, msg, args, react);   // media reply → .tourl වගේම
         return send(jid, { text: `🪞 *.mirror <link>* — file එක → 🔗 direct share link\n${foot('media reply එකකට ගහුවොත් .tourl වගේම')}` }, { quoted: msg });
     }
-    const { download } = require('./downloader');
+    const { download, freeDisk, human, maxMB } = require('./downloader');
+    const maxBytes = maxMB() * 1048576;
     const st = await send(jid, { text: `🪞 ${cut(u, 100)}…` }, { quoted: msg });
     const edit = async (t) => { try { await send(jid, { text: t, edit: st.key }); } catch { } };
     let last = 0;
@@ -319,16 +320,48 @@ async function cmdMirror(send, jid, msg, args, react) {
         const pct = total ? Math.floor(loaded * 100 / total) : null;
         edit(`🪞 ${pct === null ? '' : bar(pct) + ` ${pct}%\n`}${(loaded / 1048576).toFixed(1)} MB`);
     };
-    const files = await download(u, onProgress, { stream: false });
-    let out = '';
-    for (const f of files) {
-        await edit(`🪞 upload… (${(f.size / 1048576).toFixed(1)} MB)`);
-        const r = await mirror.uploadFile(f.path, f.name);
-        out += `${out ? '\n' : ''}🔗 *${f.name}*\n${r.url}\n${foot(`${(f.size / 1048576).toFixed(1)} MB · ${r.days}d · ${r.host}`)}\n`;
-        if (f.path) fs.rm(f.path, { force: true }, () => { });
+
+    // 🌊 v3.06: 512MB free hosts වල 1GB+ movies disk එකට fit වෙන්නේ නෑ → probe කරලා ලොකු/unknown
+    // files disk එකට touch නොකරම source stream → transfer.archivete.am PUT pipe (zero disk / zero RAM buffer)
+    const free = freeDisk('.') ?? 0;
+    const probe = await mirror.probeSize(u).catch(() => null);
+    const total = probe ? probe.total : 0;
+    if (total > maxBytes) return await edit(`❌ file එක ${human(total)} — mirror limit එක ${human(maxBytes)} (*.maxmb*)`);
+    if (probe && probe.isHtml) return await edit('❌ මේ link එකෙන් එන්නේ web page එකක්, file එකක් නෙවෙයි. Direct download link එකක් එවන්න.');
+    const fitsDisk = total > 0 && total * 2 + 60 * 1048576 < free;
+    const bigOrUnknown = !total || !fitsDisk;
+
+    if (!bigOrUnknown) {
+        // පරණ path — පොඩි file, disk එකට fit: qu.ax (30d) → transfer fallback (disk එකෙන් stream)
+        try {
+            const files = await download(u, onProgress, { stream: false });
+            let out = '';
+            for (const f of files) {
+                await edit(`🪞 upload… (${(f.size / 1048576).toFixed(1)} MB)`);
+                const r = await mirror.uploadFile(f.path, f.name);
+                out += `${out ? '\n' : ''}🔗 *${f.name}*\n${r.url}\n${foot(`${(f.size / 1048576).toFixed(1)} MB · ${r.days}d · ${r.host}`)}\n`;
+                if (f.path) fs.rm(f.path, { force: true }, () => { });
+            }
+            react?.('✅');
+            return await edit(out + foot('public link — sensitive files එපා'));
+        } catch (e) {
+            // disk එක මැද්දේ ඉවර වුනොත් stream-pipe එකට fallback වෙනවා — error එක disk එකක් නම් නම්
+            if (!/disk|space|full|ENOSPC/i.test(String(e.message || e))) {
+                return await edit(`❌ mirror fail: ${String(e.message || e).slice(0, 140)}`);
+            }
+            await edit('🪞 disk එකට fit වෙන්නේ නෑ → stream mode…');
+        }
     }
-    react?.('✅');
-    await edit(out + foot('public link — sensitive files එපා'));
+
+    // 🌊 stream-pipe: source → transfer.archivete.am (~7d / 100 downloads) — 1GB+ movies OK
+    try {
+        const urlName = decodeURIComponent(((new URL(u)).pathname.split('/').pop() || '').trim());
+        const r = await mirror.streamToTransfer(u, { total, onProgress, name: (probe && probe.name) || urlName || 'file.bin' });
+        react?.('✅');
+        return await edit(`🔗 *${r.name}*\n${r.url}\n${foot(`${(r.loaded / 1048576).toFixed(1)} MB · transfer.archivete.am · ~7d / 100 downloads`)}\n> 💾 link එක browser එකෙන් download කරන්න (ලොකු files disk එකට නොගෙන stream කළා)`);
+    } catch (e) {
+        return await edit(`❌ stream mirror fail: ${String(e.message || e).slice(0, 140)}\n> ටිකකින් ආයෙත් try කරන්න`);
+    }
 }
 
 // ───────── web tools ─────────
