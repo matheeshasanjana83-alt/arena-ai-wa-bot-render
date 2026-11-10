@@ -159,9 +159,17 @@ async function streamUpload(u, opts = {}) {
     const chain = total > X0_MAX ? ['filebin', 'transfer'] : ['x0at', 'filebin', 'transfer'];
     let lastErr = null;
     for (const host of chain) {
-        let r;
-        try { r = await fetchFn(u, { headers: { ...UA }, redirect: 'follow', ...(signal ? { signal } : {}) }); }
-        catch (e) { lastErr = e; continue; }
+        // dual-UA source GET (v3.06.1): browser UA first (CDNs hate curl), then curl UA —
+        // filebin.net serves an HTML page to browsers but the raw file to curl
+        let r = null;
+        for (const hdrs of [UA, { 'User-Agent': 'curl/8.5.0' }]) {
+            try { r = await fetchFn(u, { headers: hdrs, redirect: 'follow', ...(signal ? { signal } : {}) }); }
+            catch (e) { lastErr = e; r = null; break; }
+            const ct0 = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+            if (r.ok && ct0 !== 'text/html') break;
+            try { await r.body?.cancel(); } catch { }
+        }
+        if (!r) continue;
         if (!r.ok) { try { await r.body?.cancel(); } catch { } lastErr = new Error('server එකෙන් HTTP ' + r.status); continue; }
         const mime = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
         if (mime === 'text/html') { try { await r.body?.cancel(); } catch { } throw new Error('මේ link එකෙන් එන්නේ web page එකක් — direct download link එකක් එවන්න'); }
