@@ -1,5 +1,5 @@
 /**
- * style.js — KAVIZ MD V1 v2.22 message style (single source of truth)
+ * style.js — ＢＡＴＩＳＴＡ  ＭＤ v2.22 message style (single source of truth)
  * Every caption / list / status that leaves the bot flows through here,
  * so the whole bot speaks with one hand-made voice — not a generated one.
  *
@@ -7,7 +7,7 @@
  *   progress bubbles self-delete when finished — no "✅ done" residue
  *   captions = one title line + a gray blockquote footer, nothing more
  */
-const BRAND = 'ᴋᴀᴠɪᴢ ᴍᴅ ᴠ1';
+const BRAND = 'ＢＡＴＩＳＴＡ  ＭＤ';
 
 /** gray blockquote footer — extra is a short note (size, days, warning…) */
 const foot = (extra) => `> ⚡ ${BRAND}${extra ? '  ·  ' + extra : ''}`;

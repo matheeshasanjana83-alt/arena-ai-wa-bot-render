@@ -1,6 +1,6 @@
 'use strict';
 /**
- * moviedex.js — .moviedex for KAVIZ MD V1 (v2.28)
+ * moviedex.js — .moviedex for ＢＡＴＩＳＴＡ  ＭＤ (v2.28)
  *
  *  Movie + TV-series search & FILE downloads from the MovieBox MOBILE BFF
  *  (the signed wCFeed-mobile-bff API the Android app uses — reverse-engineered from
@@ -80,7 +80,7 @@ const { foot, cut, bar } = require('./style');
 
 /** v2.28 brand footer — replaces the old tutorial hint lines (user request) */
 const MV_FOOT = '> ＫＡＶＩＺ Ｖ1 🍁';
-const DIV = '━━━━━━━━━━━━━━━━━━━';   // premium card rule — consistent section divider on every KAVIZ card
+const DIV = '━━━━━━━━━━━━━━━━━━━';   // premium card rule — consistent section divider on every BATISTA card
 const fmtSize = (mb) => !mb ? '' : human(mb * 1048576).replace(/\.0 MB$/, ' MB');   // 357.0 MB → 357 MB (cleaner premium rows)
 
 /* ───────────────── 1. signed MovieBox mobile-BFF client ───────────────── */

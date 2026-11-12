@@ -1,5 +1,5 @@
 /**
- * tools.js — KAVIZ MD V1 v2.12 tools & fun (ideas from Knightbot-MD, rewritten with stable free APIs)
+ * tools.js — ＢＡＴＩＳＴＡ  ＭＤ v2.12 tools & fun (ideas from Knightbot-MD, rewritten with stable free APIs)
  *   .tts .tr .weather .lyrics .toimg .tourl .ss .qr .short .calc .github .imagine .del .setpp
  *   .joke .fact .quote .8ball
  * Owner-only (checked in bot.js).
@@ -136,7 +136,7 @@ async function cmdWeather(send, jid, msg, args) {
 async function cmdLyrics(send, jid, msg, args) {
     const q = args.join(' ').trim();
     if (!q) return send(jid, { text: '🎤 *.lyrics <සින්දුවේ නම>*\nඋදා: .lyrics faded alan walker' }, { quoted: msg });
-    const list = await getJson(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { 'Lrclib-Client': 'kaviz-md-bot' });
+    const list = await getJson(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, { 'Lrclib-Client': 'batista-md-bot' });
     const s = (list || []).find((x) => x.plainLyrics) || null;
     if (!s) return send(jid, { text: `😢 "${q}" lyrics හම්බුණේ නෑ` }, { quoted: msg });
     const ly = s.plainLyrics.length > 3500 ? s.plainLyrics.slice(0, 3500) + '\n...' : s.plainLyrics;
@@ -172,7 +172,7 @@ async function cmdToUrl(send, jid, msg, args, react) {
     if (buf.length > 190 * 1048576) return send(jid, { text: '❌ 190 MB ට වඩා ලොකුයි' }, { quoted: msg });
     const mm = m.src.message[m.kind + 'Message'] || {};
     const ext = (mm.fileName && path.extname(mm.fileName)) || ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin');
-    const r = await upload(buf, 'kaviz-' + Date.now().toString(36) + ext);
+    const r = await upload(buf, 'batista-' + Date.now().toString(36) + ext);
     react?.('✅');
     return send(jid, { text: `🔗 ${r.url}\n${foot(`${(buf.length / 1048576).toFixed(1)} MB · ${r.days}d · ${r.host} · public`)}` }, { quoted: msg });
 }
@@ -188,7 +188,7 @@ async function cmdUploadTra(send, jid, msg, args, react) {
         if (!buf || !buf.length) throw new Error('media එක හිස්');
         if (buf.length > 190 * 1048576) return await edit('❌ 190 MB ට වඩා ලොකුයි — මේ host එකට upload කරන්න බෑ');
         const mm = m.src.message[m.kind + 'Message'] || {};
-        const base = (mm.fileName && path.basename(mm.fileName)) || ('kaviz-' + Date.now().toString(36) + ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin'));
+        const base = (mm.fileName && path.basename(mm.fileName)) || ('batista-' + Date.now().toString(36) + ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin'));
         const mb = (buf.length / 1048576).toFixed(1);
         // v2.87 FIX: 104MB upload එකක් හැම වෙලාවෙම hang වෙනවා — undici fetch වල total-timeout නෑ,
         // slow/blocked host එකක් (හෝ route-cache එකේ හොරට poolproxy තියෙනවා නම්) card එක හිමින්ම තියනවා.
@@ -237,7 +237,7 @@ async function cmdUploadGo(send, jid, msg, args, react) {
         if (!buf || !buf.length) throw new Error('media එක හිස්');
         if (buf.length > 190 * 1048576) return await edit('❌ 190 MB ට වඩා ලොකුයි — මේ host එකට upload කරන්න බෑ');
         const mm = m.src.message[m.kind + 'Message'] || {};
-        const base = (mm.fileName && path.basename(mm.fileName)) || ('kaviz-' + Date.now().toString(36) + ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin'));
+        const base = (mm.fileName && path.basename(mm.fileName)) || ('batista-' + Date.now().toString(36) + ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin'));
         const mb = (buf.length / 1048576).toFixed(1);
         // bounded budget + liveness tick + one retry (v2.87 .uploadtra pattern — host එක කොහෙ හරි slow උනත් card එක හිමින්ම තියන්නේ නෑ)
         const budgetMs = buf.length > 50 * 1048576 ? 420e3 : 150e3;
@@ -275,7 +275,7 @@ async function cmdUploadTm(send, jid, msg, args, react) {
         if (!buf || !buf.length) throw new Error('media එක හිස්');
         if (buf.length > mirror.TMPFILES_MAX) return await edit(`❌ tmpfiles cap = 100 MB — මේ file එක ${(buf.length / 1048576).toFixed(1)} MB\n> *.uploadgo* / *.uploadtra* use කරන්න`);
         const mm = m.src.message[m.kind + 'Message'] || {};
-        const base = (mm.fileName && path.basename(mm.fileName)) || ('kaviz-' + Date.now().toString(36) + ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin'));
+        const base = (mm.fileName && path.basename(mm.fileName)) || ('batista-' + Date.now().toString(36) + ({ image: '.jpg', video: '.mp4', sticker: '.webp', audio: '.mp3' }[m.kind] || '.bin'));
         const mb = (buf.length / 1048576).toFixed(1);
         const budgetMs = buf.length > 50 * 1048576 ? 420e3 : 150e3;
         const t0 = Date.now();
@@ -400,7 +400,7 @@ function cmdCalc(send, jid, msg, args) {
 async function cmdGithub(send, jid, msg, args) {
     const u = (args[0] || '').replace(/^@/, '').replace(/^https?:\/\/github\.com\//, '').split('/')[0];
     if (!u) return send(jid, { text: '🐙 *.github <username>*  — GitHub profile එක' }, { quoted: msg });
-    const r = await fetch(`https://api.github.com/users/${encodeURIComponent(u)}`, { headers: { 'User-Agent': 'kaviz-md-bot' } });
+    const r = await fetch(`https://api.github.com/users/${encodeURIComponent(u)}`, { headers: { 'User-Agent': 'batista-md-bot' } });
     if (r.status === 404) return send(jid, { text: `❌ "${u}" කියලා GitHub user කෙනෙක් නෑ` }, { quoted: msg });
     const d = await r.json();
     const cap = `🐙 *${d.name || d.login}*  (@${d.login})\n${d.bio ? '📝 ' + d.bio + '\n' : ''}\n📦 Repos: ${d.public_repos}  •  👥 Followers: ${fmtNum(d.followers)}  •  ➡️ Following: ${d.following}\n${d.location ? '📍 ' + d.location + '\n' : ''}${d.blog ? '🌐 ' + d.blog + '\n' : ''}📅 ${new Date(d.created_at).toLocaleDateString('en-GB')}\n🔗 ${d.html_url}`;

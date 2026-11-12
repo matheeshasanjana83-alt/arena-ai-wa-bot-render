@@ -6,6 +6,7 @@ const guard = require('../guard');   // v2.41: mode control in checks
 let n = 0, ok = 0, bad = 0;
 const t = (name, cond) => { cond ? ok++ : bad++; console.log(`  ${cond ? '✅' : '❌'} ${name}`); };
 const ME = '94771234567@s.whatsapp.net';
+const TEST_JPG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABAAEADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyGvKqK9Vryv8AdfO5+m/8lF/079n/ANvX5vutawV5VRXqtH+6+dw/5KL/AKd+z/7evzfda1gryqivVaP9187h/wAlF/079n/29fm+61rBXlVFeq0f7r53D/kov+nfs/8At6/N91rWCvKqK9Vo/wB187h/yUX/AE79n/29fm+61rBXlVFeq0f7r53D/kov+nfs/wDt6/N91rWCvKqK9Vo/3XzuH/JRf9O/Z/8Ab1+b7rWsFeVUV6rR/uvncP8Akov+nfs/+3r833WtYK8qor1Wj/dfO4f8lF/079n/ANvX5vutawV5VRXqtH+6+dw/5KL/AKd+z/7evzfda1gryqivVaP9187h/wAlF/079n/29fm+61rBXlVFeq0f7r53D/kov+nfs/8At6/N91rWCvKqK9Vo/wB187h/yUX/AE79n/29fm+61rBXlVFeq0f7r53D/kov+nfs/wDt6/N91rWCvKqK9Vo/3XzuH/JRf9O/Z/8Ab1+b7rWsFeVUV6rR/uvncP8Akov+nfs/+3r833WtY//Z', 'base64');   // v3.06.3: banner.jpg deleted — tiny inline JPEG stands in for sticker/media tests
 const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remoteJid: jid, fromMe }, message: { conversation: text } });
 (async () => {
     const out = [];
@@ -17,7 +18,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
     r = await run(mk('.ping', false, '94770000000@s.whatsapp.net')); t('🔒 v2.41 mode private: වෙන කෙනෙක් .ping → ignore', r.length === 0);
     r = await run(mk('.download https://x0.at/D07z.zip', false, '120363@g.us')); t('🔒 v2.41 mode private: group එකේ වෙන කෙනෙක් .download → ignore', r.length === 0);
     r = await run(mk('hello')); t('සාමාන්‍ය message → ignore', r.length === 0);
-    r = await run(mk('.download')); t('.download link නැතුව → help', r.length === 1 && /KAVIZ MD V1/.test(r[0].text));
+    r = await run(mk('.download')); t('.download link නැතුව → help', r.length === 1 && /ＢＡＴＩＳＴＡ  ＭＤ/.test(r[0].text));
     r = await run(mk('.download https://raw.githubusercontent.com/matheeshasanjana83-alt/abc/main/downloads/Joystick-Layout-NoCLEO-v1.zip'));
     const doc = r.find(x => x.document);
     t('.download GitHub → document එවනවා', !!doc && doc.fileName === 'Joystick-Layout-NoCLEO-v1.zip' && doc.size === 3127);
@@ -102,7 +103,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
     const ans = r.find(x => x.edit && /උත්තරය/.test(x.text || ''));
     t('.ai → Gemini උත්තරය (edit)', !!ans && /GTA cheats/.test(ans.text));
     t('markdown → WhatsApp (*bold*, heading)', !!ans && /\*හායි!\*/.test(ans.text) && /^\*උත්තරය\*/.test(ans.text) && !/\*\*/.test(ans.text));
-    t('system prompt = KAVIZ MD V1', calls.at(-1).body.systemInstruction.parts[0].text.includes('KAVIZ MD V1'));
+    t('system prompt = ＢＡＴＩＳＴＡ  ＭＤ', calls.at(-1).body.systemInstruction.parts[0].text.includes('ＢＡＴＩＳＴＡ  ＭＤ'));
     r = await run2(mk('.ai තව කියන්න')); t('memory: 2nd question එකට කලින් කතාව යවනවා (turns=3)', r.some(x => /turns=3/.test(x.text || '')));
     r = await run2(mk('.ai reset')); r = await run2(mk('.ai අලුත් එකක්')); t('.ai reset → memory clear (turns=1)', r.some(x => /turns=1/.test(x.text || '')));
     const qm = mk('.ai'); qm.message = { extendedTextMessage: { text: '.ai', contextInfo: { quotedMessage: { conversation: 'Hello world message' } } } };
@@ -161,8 +162,8 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         const bot = require('../bot'); const path = require('path');
         const LOGO = path.join(__dirname, '..', 'logo.img'); const hadLogo = fs.existsSync(LOGO) ? fs.readFileSync(LOGO) : null;
         fs.rmSync(LOGO, { force: true });
-        r = await run(mk('.alive')); const card = r.find(x => x.image);
-        t('.alive → banner photo + card', !!card && card.image.length === fs.statSync(path.join(__dirname, '..', 'banner.jpg')).size && /KAVIZ MD V1/.test(card.caption) && /v\d+\.\d+/.test(card.caption));
+        r = await run(mk('.alive')); const card = r.find(x => x.video);
+        t('.alive → banner video + card', !!card && card.video.length === fs.statSync(path.join(__dirname, '..', 'banner.mp4')).size && /ＢＡＴＩＳＴＡ  ＭＤ/.test(card.caption) && /v\d+\.\d+/.test(card.caption));
         t('card එක කෙටියි (පේළි 9 ට අඩුයි)', card && card.caption.split('\n').length <= 9);
         r = await run(mk('.setlogo')); t('.setlogo photo නැතුව → උදව් message', r.some(x => /reply/.test(x.text || '')) && !fs.existsSync(LOGO));
         const fake = Buffer.alloc(4000, 7); let got = null;
@@ -181,8 +182,8 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
 
     // ───────── v2.10: photo menu + categories + auto react ─────────
     {
-        r = await run(mk('.menu')); const mm = r.find(x => x.image);
-        t('.menu → photo + info box + categories', !!mm && /INFO/.test(mm.caption) && /CATEGORIES/.test(mm.caption) && /RAM/.test(mm.caption) && /\*1\* ┃ 📥 Download/.test(mm.caption));
+        r = await run(mk('.menu')); const mm = r.find(x => x.video);   // v3.06.3: banner VIDEO
+        t('.menu → video + info box + categories', !!mm && /INFO/.test(mm.caption) && /CATEGORIES/.test(mm.caption) && /💾/.test(mm.caption) && /\*1\* ┃ 📥 Download/.test(mm.caption));
         const menuId = 'OUT' + n;   // fake send ids
         const qm = (t2) => { const m2 = mk(t2); m2.message = { extendedTextMessage: { text: t2, contextInfo: { stanzaId: menuId } } }; return m2; };   // quote the menu card
         r = await run(qm('1')); t('menu එකට reply කරලා 1 → Download category', r.some(x => /DOWNLOAD/.test(x.text || '')));
@@ -191,7 +192,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         r = await run(mk('9')); t('🔒 v2.58: bare 9 → silence', r.length === 0);
         r = await run(qm('10')); t('menu එකට reply කරලා 10 → AI category', r.some(x => /\*🤖 AI\*/.test(x.text || '')));
         r = await run(mk('13')); t('🔒 v2.58: bare 13 → silence', r.length === 0);
-        r = await run(qm('14')); t('menu එකට reply කරලා 14 → status card (photo)', r.some(x => x.image && /KAVIZ MD V1/.test(x.caption)));
+        r = await run(qm('14')); t('menu එකට reply කරලා 14 → status card (video)', r.some(x => x.video && /ＢＡＴＩＳＴＡ  ＭＤ/.test(x.caption)));
         r = await run(mk('99')); t('🔒 v2.58: bare 99 → silence (error msg එකත් නෑ)', r.length === 0);
         r = await run(qm('99')); t('menu එකට reply කරලා 99 → error', r.some(x => /අතර number/.test(x.text || '')));
         const other = mk('1'); other.message = { extendedTextMessage: { text: '1', contextInfo: { stanzaId: 'SOMETHING_ELSE' } } };
@@ -231,11 +232,11 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         r = await run(mk('.tiktok https://www.tiktok.com/@scout2015/video/6718335390845095173')); t('.tiktok → video (no watermark)', r.some(x => x.video && /No watermark/.test(x.caption || '')));
         r = await run(mk('.fb')); t('.fb link නැතුව → usage', /\.fb <link>/.test(txt()));
         // stickers (mock WhatsApp media download)
-        const jpg = fs.readFileSync(path.join(__dirname, '..', 'banner.jpg'));
+        const jpg = TEST_JPG;
         bot._setMediaDownloader(async (m) => m.message.videoMessage ? fs.readFileSync('/tmp/ytt/v.mp4') : m.message.stickerMessage ? globalThis.__lastSticker : jpg);
         const sm = mk('.s'); sm.message = { imageMessage: { caption: '.s', mimetype: 'image/jpeg' } };
         r = await run(sm); const st = r.find(x => x.sticker);
-        t('.s photo → webp sticker (512, Exif)', !!st && st.sticker.slice(0, 4).toString() === 'RIFF' && st.sticker.includes(Buffer.from('KAVIZ MD V1')));
+        t('.s photo → webp sticker (512, Exif)', !!st && st.sticker.slice(0, 4).toString() === 'RIFF' && st.sticker.includes(Buffer.from('ＢＡＴＩＳＴＡ  ＭＤ')));
         if (fs.existsSync('/tmp/ytt/v.mp4')) {
             const vm = mk('.s'); vm.message = { extendedTextMessage: { text: '.s', contextInfo: { stanzaId: 'V1', quotedMessage: { videoMessage: { seconds: 5, mimetype: 'video/mp4' } } } } };
             r = await run(vm); const vs = r.find(x => x.sticker);
@@ -293,7 +294,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         r = await run(mk('.imagine a cute robot drinking tea')); t('.imagine → AI image (හෝ busy නම් පැහැදිලි message)', r.some(x => x.image && x.image.length > 5000) || /busy/.test(txt()));
         // media tools (mock download)
         globalThis.__st = null;
-        bot._setMediaDownloader(async (m) => m.message.stickerMessage ? globalThis.__st : fs.readFileSync(path.join(__dirname, '..', 'banner.jpg')));
+        bot._setMediaDownloader(async (m) => m.message.stickerMessage ? globalThis.__st : TEST_JPG);
         const sm = mk('.s'); sm.message = { imageMessage: { caption: '.s', mimetype: 'image/jpeg' } }; r = await run(sm); globalThis.__st = (r.find(x => x.sticker) || {}).sticker;
         const ti = mk('.toimg'); ti.message = { extendedTextMessage: { text: '.toimg', contextInfo: { stanzaId: 'S', quotedMessage: { stickerMessage: { mimetype: 'image/webp' } } } } };
         r = await run(ti); t('.toimg sticker → PNG photo', r.some(x => x.image && x.image.slice(1, 4).toString() === 'PNG'));
@@ -362,7 +363,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         bot.ME.pn = ME;
         fs.writeFileSync(bot.AGENT_MSG, 'Hello from the agent 👋\nදෙවෙනි line එක');
         const ok = await bot._agentTick(fsend);
-        t('📨 agent-msg.txt → Message yourself එකට යනවා', ok && sent.length === 1 && sent[0][0] === ME && /KAVIZ Agent/.test(sent[0][1].text) && /දෙවෙනි line/.test(sent[0][1].text));
+        t('📨 agent-msg.txt → Message yourself එකට යනවා', ok && sent.length === 1 && sent[0][0] === ME && /BATISTA Agent/.test(sent[0][1].text) && /දෙවෙනි line/.test(sent[0][1].text));
         t('📨 යැව්වට පස්සේ file එක මැකෙනවා (ආයෙත් යන්නේ නෑ)', !fs.existsSync(bot.AGENT_MSG) && (await bot._agentTick(fsend)) === false && sent.length === 1);
         fs.writeFileSync(bot.AGENT_MSG, '   ');
         t('📨 හිස් file → මුකුත් යවන්නේ නෑ', (await bot._agentTick(fsend)) === false && sent.length === 1);

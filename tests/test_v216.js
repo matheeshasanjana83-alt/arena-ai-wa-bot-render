@@ -35,7 +35,7 @@ const net = require('../net');
     console.log(`[4] markGood on unknown proxy: no crash ✅`);
 
     // 5) smartFetch normal (direct) still works — pool skipped when empty
-    const r = await net.smartFetch('https://api.github.com/zen', { headers: { 'User-Agent': 'kaviz-md-test' } });
+    const r = await net.smartFetch('https://api.github.com/zen', { headers: { 'User-Agent': 'batista-md-test' } });
     console.log(`[5] smartFetch direct: HTTP ${r.status} ✅`);
 
     // 6) candidates() with empty pool → [] (net.js skips pool fast)

@@ -1,5 +1,5 @@
 /**
- * media.js — yt-dlp + ffmpeg manager for KAVIZ MD V1 (v2.15)
+ * media.js — yt-dlp + ffmpeg manager for ＢＡＴＩＳＴＡ  ＭＤ (v2.15)
  *   (ported & cleaned up from SmokeBoy v3.7 downloader.js)
  *
  *  • Panel / Linux (x64, arm64): downloads static yt-dlp + ffmpeg into ./bin on first use
@@ -31,7 +31,7 @@ const ASSETS = {
 };
 
 async function downloadBin(url, dest) {
-    const r = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'kaviz-md-bot' } });
+    const r = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'batista-md-bot' } });
     if (!r.ok) throw new Error(`${path.basename(dest)} download fail (${r.status})`);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     const tmp = dest + '.part';
@@ -75,7 +75,7 @@ async function checkUpdate(force = false) {
         try {
             let latest = '';
             try {
-                const r = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest', { headers: { 'User-Agent': 'kaviz-md-bot', Accept: 'application/vnd.github+json' } });
+                const r = await fetch('https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest', { headers: { 'User-Agent': 'batista-md-bot', Accept: 'application/vnd.github+json' } });
                 if (r.ok) latest = String((await r.json()).tag_name || '').replace(/^v/, '');
             } catch { }
             // 🩺 v2.68: panel GitHub API = 0/60 rate-limited (worklog 2026-10-18) → the API check silently
@@ -97,7 +97,7 @@ async function checkUpdate(force = false) {
 /** GitHub API quota-free latest version: releases/latest 302 → /tag/v2026.10.16 → "2026.10.16" */
 async function latestViaRedirect() {
     try {
-        const r = await fetch('https://github.com/yt-dlp/yt-dlp/releases/latest', { redirect: 'manual', headers: { 'User-Agent': 'kaviz-md-bot' }, signal: AbortSignal.timeout(15000) });
+        const r = await fetch('https://github.com/yt-dlp/yt-dlp/releases/latest', { redirect: 'manual', headers: { 'User-Agent': 'batista-md-bot' }, signal: AbortSignal.timeout(15000) });
         const loc = r.headers.get('location') || '';
         try { await r.body?.cancel(); } catch { }
         const m = loc.match(/\/tag\/v?([0-9][0-9.]*)\s*$/);
@@ -323,12 +323,12 @@ async function toWebp(input, { animated = false } = {}) {
     } finally { fs.rmSync(out, { force: true }); }
 }
 
-async function addExif(webp, pack = 'KAVIZ MD V1', author = 'KAVIZ MD V1') {
+async function addExif(webp, pack = 'ＢＡＴＩＳＴＡ  ＭＤ', author = 'ＢＡＴＩＳＴＡ  ＭＤ') {
     try {
         const { Image } = require('node-webpmux');
         const img = new Image();
         await img.load(webp);
-        const json = { 'sticker-pack-id': 'kaviz-md-' + Date.now(), 'sticker-pack-name': pack, 'sticker-pack-publisher': author, emojis: ['🤖'] };
+        const json = { 'sticker-pack-id': 'batista-md-' + Date.now(), 'sticker-pack-name': pack, 'sticker-pack-publisher': author, emojis: ['🤖'] };
         const head = Buffer.from([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
         const body = Buffer.from(JSON.stringify(json), 'utf8');
         const exif = Buffer.concat([head, body]);

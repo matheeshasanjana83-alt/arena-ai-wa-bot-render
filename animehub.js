@@ -1,5 +1,5 @@
 /**
- * animehub.js — KAVIZ MD V1 v2.81.0
+ * animehub.js — ＢＡＴＩＳＴＡ  ＭＤ v2.81.0
  * 🎌 .aniworld — AniWorld-Downloader (github.com/phoenixthrush/AniWorld-Downloader) → in-bot Node port
  *      search → series → season → episode → real provider extraction (Vidmoly HLS / Dood mp4 best-effort)
  *      NOTE: aniworld h4 labels LIE — every /redirect/<id> is resolved and routed by FINAL HOST.

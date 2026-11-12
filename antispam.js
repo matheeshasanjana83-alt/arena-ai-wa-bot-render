@@ -1,5 +1,5 @@
 /**
- * antispam.js — KAVIZ MD V1 🚫 Anti-spam + block toolkit (v2.20)
+ * antispam.js — ＢＡＴＩＳＴＡ  ＭＤ 🚫 Anti-spam + block toolkit (v2.20)
  *
  * Spammers ලාට එරෙහිව owner ට තියෙන හැම tool එකක්ම මෙතන (හැම එකක්ම owner විතරයි):
  *   .block <number|reply>   — number එක block (ඒ කෙනාගෙ messages ආයෙත් එන්නෙම නෑ)

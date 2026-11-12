@@ -1,6 +1,6 @@
 'use strict';
 /**
- * hf-space.js — Hugging Face Space wrapper for KAVIZ MD V1 (Arena AI WA Bot)
+ * hf-space.js — Hugging Face Space wrapper for ＢＡＴＩＳＴＡ  ＭＤ (Arena AI WA Bot)
  *
  * කරන වැඩ 4:
  *   1. Boot වෙද්දි  → HF_TOKEN + HF_REPO secrets දැම්ම නම්, HF Dataset එකේ තියෙන
@@ -11,9 +11,9 @@
  *   4. SPACE_HOST self-ping (විනාඩි 10 ට සැරයක්) → free Space එක sleep වෙන්නේ නෑ
  *
  * Secrets (Space Settings → Variables and secrets):
- *   PAIR_KEY  — pair site key (ඕන)          e.g. KAVIZ2026
+ *   PAIR_KEY  — pair site key (ඕන)          e.g. BATISTA2026
  *   HF_TOKEN  — HF access token (Write)      session backup ඕන නම් විතරයි
- *   HF_REPO   — dataset repo "user/name"     e.g. myname/kaviz-session
+ *   HF_REPO   — dataset repo "user/name"     e.g. myname/batista-session
  */
 
 const { spawn, execFileSync } = require('child_process');
@@ -25,7 +25,7 @@ const ROOT = __dirname;
 if (!process.env.PORT) process.env.PORT = '7860';   // Render/HF set කරනවා නම් ඒකම ගන්නවා
 const TOKEN = String(process.env.HF_TOKEN || '').trim();
 const REPO = String(process.env.HF_REPO || '').trim();          // "user/name"
-const BACKUP_NAME = 'kaviz-session-backup.tar.gz';
+const BACKUP_NAME = 'batista-session-backup.tar.gz';
 const BACKUP_EVERY_MIN = 20;
 const PING_EVERY_MIN = 10;
 const SNAP_PATHS = ['auth', 'settings.json', '.version.json', 'ai_memory.json'];

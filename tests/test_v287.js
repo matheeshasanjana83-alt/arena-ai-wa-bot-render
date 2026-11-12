@@ -10,7 +10,7 @@
  * 8.  cmdUploadTra: both attempts fail → honest 'slow/block' card, no ✅ react
  * 9.  cmdUploadTra: success → link card with MB + delete link, tick cleared
  * 10. cmdUploadTra: liveness tick edits card (≥2 edits while slow upload in-flight)
- * 11. filename: document fileName basename wins; image → kaviz-*.jpg
+ * 11. filename: document fileName basename wins; image → batista-*.jpg
  * 12. LIVE: real 20MB PUT → URL → delete-header → GET roundtrip (bounded 120s)
  */
 const assert = require('assert');
@@ -327,20 +327,20 @@ function loadNet(routePref) {
         assert(ticks.length >= 1, 'tick edit seen: ' + calls.length + ' cards');
     });
 
-    await okA('11. filename — document basename wins; image → kaviz-*.jpg', async () => {
+    await okA('11. filename — document basename wins; image → batista-*.jpg', async () => {
         const names = [];
         const { calls } = await runCmd(async (b, nm) => { names.push(nm); return { url: 'https://t/x', days: 7, host: 'transfer', del: null }; }, Buffer.alloc(1024));
         assert.strictEqual(names[0], 'perms.apk.zip', 'document fileName basename: ' + names[0]);
         const { calls: c2 } = await runCmd(async (b, nm) => { names.push(nm); return { url: 'https://t/x', days: 7, host: 'transfer', del: null }; }, Buffer.alloc(1024), { imageMessage: { } });
-        // kind image + no fileName → kaviz-<ts36>.jpg
-        assert(/^kaviz-[0-9a-z]+\.jpg$/.test(names[1]), 'image fallback name: ' + names[1]);
+        // kind image + no fileName → batista-<ts36>.jpg
+        assert(/^batista-[0-9a-z]+\.jpg$/.test(names[1]), 'image fallback name: ' + names[1]);
     });
 
     // ── 12. LIVE roundtrip ──
     await okA('12. LIVE: real 20MB PUT → URL + delete → bounded', async () => {
         const mirror = require('../mirror');
         const buf = Buffer.alloc(20 * 1048576, 0x4b);
-        const r = await mirror.upTransfer(buf, 'kaviz-v287-test.bin', { signal: AbortSignal.timeout(120e3) });
+        const r = await mirror.upTransfer(buf, 'batista-v287-test.bin', { signal: AbortSignal.timeout(120e3) });
         assert(/^https?:\/\//.test(r.url), 'url: ' + r.url);
         assert(r.del, 'delete link present');
         const g = await fetch(r.url, { signal: AbortSignal.timeout(60e3) });

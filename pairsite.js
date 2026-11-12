@@ -1,5 +1,5 @@
 /**
- * pairsite.js — KAVIZ MD V1 v2.29 web pairing site (zero dependencies).
+ * pairsite.js — ＢＡＴＩＳＴＡ  ＭＤ v2.29 web pairing site (zero dependencies).
  *
  * One HTTP server on the panel port that serves FIVE things:
  *   GET  /                      → pair page (number එක දාන්න → pairing code)
@@ -54,7 +54,7 @@ function page(key) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex">
-<title>KAVIZ MD V1 — Pair</title>
+<title>ＢＡＴＩＳＴＡ  ＭＤ — Pair</title>
 <style>
   :root { --bg:#0b0e14; --card:#141824; --line:#232a3d; --tx:#e8ecf4; --dim:#8b93a7; --ac:#ffb454; --ok:#3fd68f; --err:#ff6b6b; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -103,7 +103,7 @@ function page(key) {
     </div>
   </div>
 
-  <footer>⚡ ᴋᴀᴠɪᴢ ᴍᴅ ᴠ1 · private bot</footer>
+  <footer>⚡ ＢＡＴＩＳＴＡ  ＭＤ · private bot</footer>
 </div>
 <script>
 const $ = (i) => document.getElementById(i);
@@ -207,7 +207,7 @@ function abcPage() {
     return `<!DOCTYPE html>
 <html lang="si"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
-<title>KAVIZ MD — Files</title>
+<title>ＢＡＴＩＳＴＡ  ＭＤ — Files</title>
 <style>
   body{background:#0b0e14;color:#e8ecf4;font-family:system-ui,'Noto Sans',sans-serif;display:flex;justify-content:center;padding:32px 16px;margin:0}
   .card{width:100%;max-width:520px;background:#141824;border:1px solid #232a3d;border-radius:14px;padding:22px}
@@ -219,7 +219,7 @@ function abcPage() {
   .home{display:inline-block;margin-top:16px;color:#8b93a7;font-size:12.5px}
 </style></head><body><div class="card">
 <h1>📦 Uploaded Files</h1>
-<div class="sub">KAVIZ MD V1 — /abc/ file host</div>
+<div class="sub">ＢＡＴＩＳＴＡ  ＭＤ — /abc/ file host</div>
 <table>${rows}</table>
 <a class="home" href="/">← Pair page</a>
 </div></body></html>`;
@@ -232,7 +232,7 @@ function start(deps) {
     const srv = http.createServer(async (q, r) => {
         try {
             const url = new URL(q.url, 'http://x');
-            if (url.pathname === '/status') return json(r, 200, d.status ? d.status() : { bot: 'KAVIZ MD V1', status: 'unknown', uptime: Math.floor(process.uptime()) });
+            if (url.pathname === '/status') return json(r, 200, d.status ? d.status() : { bot: 'ＢＡＴＩＳＴＡ  ＭＤ', status: 'unknown', uptime: Math.floor(process.uptime()) });
             if (url.pathname === '/logs') {   // 🗒️ v2.43: recent console output (pair-key gated) — remote debugging
                 if (String(url.searchParams.get('key') || '') !== String(KEY)) return json(r, 403, { ok: false, error: 'wrong key' });
                 r.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });

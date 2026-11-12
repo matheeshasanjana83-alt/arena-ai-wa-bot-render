@@ -39,8 +39,8 @@ const plainMsg = () => ({ key: { remoteJid: JID, id: 'A3', fromMe: true }, messa
 (async () => {
     console.log('— v2.96.0 pins —');
     ok('version 2.90 + manifest notes/files + mirror exports', () => {
-        assert.strictEqual(pkg.version, '3.06.2', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.06.2', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.06.3', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.06.3', 'manifest ' + manifest.version);
         assert.ok(manifest.notes.includes('.uploadgo'), 'notes');
         assert.ok(manifest.files.includes('tests/test_v290.js'), 'files');
         assert.strictEqual(typeof mirror.upGofile, 'function', 'upGofile exported');
@@ -194,25 +194,25 @@ const plainMsg = () => ({ key: { remoteJid: JID, id: 'A3', fromMe: true }, messa
 
     console.log('— LIVE: real APIs (upload-only for gofile · full roundtrip tmpfiles · transfer regression) —');
     await okA('LIVE tmpfiles: upload → resolve → one-time link → download roundtrip', async () => {
-        const body = Buffer.from('KAVIZ v2.90 live probe ' + new Date().toISOString());
-        const t = await mirror.upTmpfiles(body, 'kaviz_v290_test.txt');
-        assert.ok(/^https:\/\/tmpfiles\.org\/[\w-]+\/kaviz_v290_test\.txt$/.test(t.url), t.url);
+        const body = Buffer.from('BATISTA v2.90 live probe ' + new Date().toISOString());
+        const t = await mirror.upTmpfiles(body, 'batista_v290_test.txt');
+        assert.ok(/^https:\/\/tmpfiles\.org\/[\w-]+\/batista_v290_test\.txt$/.test(t.url), t.url);
         const r = await resolvers.resolve(t.url);
         assert.ok(/^https:\/\/tmpfiles\.org\/dl\/\d+\.[a-f0-9]+\//.test(r.url), 'one-time link: ' + r.url.slice(0, 60));
         const back = await (await fetch(r.url, { headers: { referer: 'https://tmpfiles.org/' } })).text();
         assert.strictEqual(back, body.toString(), 'roundtrip exact');
     });
     await okA('LIVE gofile: guest upload → downloadPage + fileId + guestToken', async () => {
-        const body = Buffer.from('kaviz v290 gofile probe ' + Date.now());
-        const g = await mirror.upGofile(body, 'kaviz_v290_test.txt');
+        const body = Buffer.from('batista v290 gofile probe ' + Date.now());
+        const g = await mirror.upGofile(body, 'batista_v290_test.txt');
         assert.ok(/^https:\/\/gofile\.io\/d\/[\w-]+$/.test(g.url), g.url);
         assert.ok(g.fileId, 'fileId');
         assert.ok(g.guestToken, 'guestToken');
     });
     await okA('LIVE transfer regression: PUT still works + delete header (කැඩිලා නෑ — host alive)', async () => {
-        const body = Buffer.from('kaviz v290 transfer probe ' + Date.now());
-        const a = await mirror.upTransfer(body, 'kaviz_v290_test.txt');
-        assert.ok(/^https:\/\/transfer\.archivete\.am\/[\w-]+\/kaviz_v290_test\.txt$/.test(a.url), a.url);
+        const body = Buffer.from('batista v290 transfer probe ' + Date.now());
+        const a = await mirror.upTransfer(body, 'batista_v290_test.txt');
+        assert.ok(/^https:\/\/transfer\.archivete\.am\/[\w-]+\/batista_v290_test\.txt$/.test(a.url), a.url);
         const back = await (await fetch(a.url)).text();
         assert.strictEqual(back, body.toString(), 'roundtrip');
     });

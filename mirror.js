@@ -1,6 +1,6 @@
 'use strict';
 /**
- * mirror.js — KAVIZ MD V1 v2.21 — file / URL → direct share link (relay)
+ * mirror.js — ＢＡＴＩＳＴＡ  ＭＤ v2.21 — file / URL → direct share link (relay)
  *
  * UX = අනිත් bots වලගේ /dl/<id>?code= links වගේ: file එකක් upload කරලා
  * browser එකෙන් උනේන direct download link එකක් ගන්නවා (status/grp share).

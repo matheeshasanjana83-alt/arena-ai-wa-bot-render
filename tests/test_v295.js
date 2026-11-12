@@ -39,7 +39,7 @@ function mockFetch(url, opts) {
     const u = String(url);
     if (/generativelanguage/.test(u)) {
         captured.push(JSON.parse(opts.body));
-        return Promise.resolve({ ok: true, status: 200, text: async () => JSON.stringify({ candidates: [{ content: { parts: [{ text: 'මම KAVIZ MD V1 🧠 — මේක sticker එකක් වගේ පේන්නේ!' }] } }] }) });
+        return Promise.resolve({ ok: true, status: 200, text: async () => JSON.stringify({ candidates: [{ content: { parts: [{ text: 'මම ＢＡＴＩＳＴＡ  ＭＤ 🧠 — මේක sticker එකක් වගේ පේන්නේ!' }] } }] }) });
     }
     if (/dictionaryapi\.dev/.test(u)) {
         return Promise.resolve({ ok: true, status: 200, json: async () => [{ word: 'serendipity', phonetic: '/ˌsɛr.ənˈdɪp.ɪ.ti/', meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'The occurrence of events by chance in a happy way.', example: 'We found the cafe by pure serendipity.' }] }] }] });
@@ -54,8 +54,8 @@ const videoMsg = (over = {}) => ({ key: { remoteJid: 'dm295d@s.whatsapp.net', id
 (async () => {
     console.log('— v2.96.0 pins + markers —');
     ok('version 2.95 pkg+manifest + notes + source markers', () => {
-        assert.strictEqual(pkg.version, '3.06.2', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.06.2', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.06.3', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.06.3', 'manifest ' + manifest.version);
         assert.ok(manifest.notes.includes('MEDIA AI'), 'notes headline');
         assert.ok(manifest.files.includes('tests/test_v295.js'), 'manifest lists test_v295.js');
         assert.ok(aiSrc.includes('CTX_OVERRIDE'), 'ai.js chat-context slot');

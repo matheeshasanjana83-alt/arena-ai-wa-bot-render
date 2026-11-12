@@ -1,5 +1,5 @@
 # 🚀 Arena AI WA Bot — Deploy Guide (සිංහල)
-*(KAVIZ MD V1 · Baileys v7 · free hosting)*
+*(ＢＡＴＩＳＴＡ  ＭＤ · Baileys v7 · free hosting)*
 
 > ⚠️ **Hugging Face ගැන**: 2026 July සිට HF free tier එකේ Docker/Gradio Spaces **PRO subscription** නැතුව create කරන්න බෑ (402 error). ඔයාගේ HF account එක කෙසේ හරි **session backup storage** එකට පාවිච්චි වෙනවා (dataset repo එකක් — ඒක free).
 
@@ -9,7 +9,7 @@
 |---|---|
 | ✅ | **GitHub repo** එක හැදිලා code push කරලා: `matheeshasanjana83-alt/arena-ai-wa-bot-render` (private) — Dockerfile + render.yaml + wrapper ඔක්කොම ඇතුළත |
 | ✅ | **Docker image** එක GitHub Actions වලින් build වෙලා GHCR එකට push වෙලා: `ghcr.io/matheeshasanjana83-alt/arena-ai-wa-bot:latest` (build ✅ success) |
-| ✅ | **HF session backup repo**: `Kavuz/kaviz-session` (private dataset) — bot session එක auto-backup වෙනවා |
+| ✅ | **HF session backup repo**: `Kavuz/batista-session` (private dataset) — bot session එක auto-backup වෙනවා |
 | ✅ | **Render registry credential** එක හදලා: `ghcr-kaviz` (`rgc-dbn7q23rjlhs739odng0`) |
 | ✅ | **PAIR_KEY** එක තෝරලා: `KAVIZ831504` |
 | ⛔ | Render **API එකෙන් service create** කරන්න card ඕන (402 — anti-abuse rule) → පහත Plan A dashboard එකෙන් card නැතුව කරන්න පුළුවන්, නැත්නම් Plan B (bot-hosting.net) |
@@ -41,7 +41,7 @@
 |---|---|
 | `PAIR_KEY` | `KAVIZ831504` *(මම තෝරලා දුන්න එක — වෙනස් කරන්නත් පුළුවන්)* |
 | `HF_TOKEN` | ඔයාගේ Hugging Face token එක (`hf_...`) |
-| `HF_REPO` | `Kavuz/kaviz-session` *(session backup repo එක — දැනටමත් හදලා තියෙනවා)* |
+| `HF_REPO` | `Kavuz/batista-session` *(session backup repo එක — දැනටමත් හදලා තියෙනවා)* |
 
 4. **Apply** → build එක start වෙනවා (~5 min — Docker build)
 5. Build ✅ වුණාම Render එක URL එකක් දෙනවා: `https://arena-ai-wa-bot-xxxx.onrender.com`

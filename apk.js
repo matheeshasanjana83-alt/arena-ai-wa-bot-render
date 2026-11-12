@@ -1,6 +1,6 @@
 /**
- * apk.js — APK search & download for KAVIZ MD V1 (v2.68)
- * Ported from Sachi-MD v1.1.0 (services/downloader/apk.js) — adapted to the KAVIZ stack:
+ * apk.js — APK search & download for ＢＡＴＩＳＴＡ  ＭＤ (v2.68)
+ * Ported from Sachi-MD v1.1.0 (services/downloader/apk.js) — adapted to the BATISTA stack:
  *   • net.js smartFetch (proxy / DoH / pool-aware) instead of axios
  *   • media.fetchToFile — file-based download (no 500 MB RAM buffers) + maxBytes cap
  *   • APKPure d.apkpure.com 302 resolve via curl — its TLS-fingerprint WAF 403s Node's

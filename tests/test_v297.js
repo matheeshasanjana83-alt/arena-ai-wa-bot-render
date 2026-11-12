@@ -49,7 +49,7 @@ bot._setSock({
 const sendCap = (sends) => async (j, c) => { sends.push(c); return { key: { id: 'K' + sends.length } }; };
 
 // ai.ask spy — THE observable for the text path (bot.js calls ai.ask through the shared module object)
-let askCalls = [], askReply = { text: 'හරි මචං, මම KAVIZ MD V1! 😎', model: 'Spy' };
+let askCalls = [], askReply = { text: 'හරි මචං, මම ＢＡＴＩＳＴＡ  ＭＤ! 😎', model: 'Spy' };
 const realAsk = ai.ask;
 function spyAsk(chatId, question, opts) { askCalls.push({ chatId, question, opts: opts || {} }); return Promise.resolve({ ...askReply }); }
 ai.ask = spyAsk;
@@ -62,8 +62,8 @@ const stickerVisionFetch = (url) => {
 (async () => {
     console.log('— v3.05.0 pins + markers —');
     ok('version 3.05.0 pkg+manifest + manifest lists test_v297.js', () => {
-        assert.strictEqual(pkg.version, '3.06.2', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.06.2', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.06.3', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.06.3', 'manifest ' + manifest.version);
         assert.ok(manifest.files.includes('tests/test_v297.js'), 'manifest lists test_v297.js');
         assert.ok(manifest.notes.includes('TEXT'), 'notes headline mentions TEXT fix');
     });
@@ -88,7 +88,7 @@ const stickerVisionFetch = (url) => {
         assert.strictEqual(askCalls[0].opts.group, false, 'DM → group:false');
         assert.strictEqual(askCalls[0].opts.owner, false, 'owner flag passthrough');
         assert.ok(askCalls[0].question.includes('මොකද කාරනේ'), 'question text intact');
-        assert.ok(sends.some((s) => String(s.text || '').includes('KAVIZ MD V1')), 'AI reply reached the chat');
+        assert.ok(sends.some((s) => String(s.text || '').includes('ＢＡＴＩＳＴＡ  ＭＤ')), 'AI reply reached the chat');
     });
     await okA('(2) group text REPLY-TO-BOT → ai.ask with group:true (v2.96 gate → text path alive)', async () => {
         askCalls = []; const sends = [];
@@ -100,7 +100,7 @@ const stickerVisionFetch = (url) => {
         assert.strictEqual(askCalls.length, 1, 'ai.ask calls: ' + askCalls.length);
         assert.strictEqual(askCalls[0].opts.group, true, 'group reply → group:true');
         assert.ok(String(askCalls[0].opts.context || '').includes('Suziy'), 'sender pushName in chat ctx');
-        assert.ok(sends.some((s) => String(s.text || '').includes('KAVIZ')), 'reply sent to group');
+        assert.ok(sends.some((s) => { const t = String(s.text || ''); return t.includes('\uff22\uff21\uff34\uff29\uff33\uff34\uff21') || t.includes('BATISTA'); }), 'reply sent to group');
     });
     await okA('(3) group text @MENTION → ai.ask with group:true', async () => {
         askCalls = []; const sends = [];

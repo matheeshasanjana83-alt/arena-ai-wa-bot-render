@@ -44,7 +44,7 @@ function ok(name, fn) {
     }
 
     console.log('\n[3] live HTTP E2E (random port)');
-    const srv = PS.start({ port: 0, status: () => ({ bot: 'KAVIZ MD V1', status: 'open', uptime: 1 }), getSock: () => null, log: () => { } });
+    const srv = PS.start({ port: 0, status: () => ({ bot: 'ＢＡＴＩＳＴＡ  ＭＤ', status: 'open', uptime: 1 }), getSock: () => null, log: () => { } });
     await new Promise(r => srv.on('listening', r));
     const port = srv.address().port;
     const base = `http://127.0.0.1:${port}`;
@@ -102,12 +102,12 @@ function ok(name, fn) {
     {
         const r = await fetch(base + '/status');
         const j = await r.json();
-        await ok('GET /status still works', () => { assert.strictEqual(r.status, 200); assert.strictEqual(j.bot, 'KAVIZ MD V1'); });
+        await ok('GET /status still works', () => { assert.strictEqual(r.status, 200); assert.strictEqual(j.bot, 'ＢＡＴＩＳＴＡ  ＭＤ'); });
     }
     {
         const r = await fetch(base + '/');
         const t = await r.text();
-        await ok('GET / pair page still works', () => { assert.strictEqual(r.status, 200); assert.ok(t.includes('KAVIZ')); });
+        await ok('GET / pair page still works', () => { assert.strictEqual(r.status, 200); assert.ok(t.includes('\uff22\uff21\uff34\uff29\uff33\uff34\uff21')); });
     }
     {
         const r = await fetch(base + '/zzz');

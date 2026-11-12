@@ -38,8 +38,8 @@ const plainMsg = () => ({ key: { remoteJid: JID, id: 'A3', fromMe: true }, messa
 (async () => {
     console.log('— v2.82.0 pins —');
     ok('version + manifest', () => {
-        assert.ok(['2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '3.06.2'].includes(pkg.version), 'pkg ' + pkg.version);
-        assert.ok(['2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '3.06.2'].includes(manifest.version), 'manifest ' + manifest.version);
+        assert.ok(['2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '3.06.3'].includes(pkg.version), 'pkg ' + pkg.version);
+        assert.ok(['2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '3.06.3'].includes(manifest.version), 'manifest ' + manifest.version);
         assert.ok(/UPLOADTRA/i.test(manifest.notes), 'notes');
         assert.ok(manifest.files.includes('tests/test_v282.js'), 'files');
     });
@@ -85,14 +85,14 @@ const plainMsg = () => ({ key: { remoteJid: JID, id: 'A3', fromMe: true }, messa
         } finally { mirror.upTransfer = orig; }
     });
 
-    await okA('image reply (no fileName) → kaviz-*.jpg generated name', async () => {
+    await okA('image reply (no fileName) → batista-*.jpg generated name', async () => {
         sent = []; let gotName = null;
         tools.setMediaDownloader(async () => Buffer.alloc(1024, 1));
         const orig = mirror.upTransfer;
         mirror.upTransfer = async (buf, name) => { gotName = name; return { url: 'https://transfer.archivete.am/tA1x/' + name, host: 'transfer', days: 7, del: null }; };
         try {
             await tools.handle('.uploadtra', { send, jid: JID, msg: imgMsg(), rest: [], react });
-            assert.ok(/^kaviz-[a-z0-9]+\.jpg$/.test(gotName), gotName);
+            assert.ok(/^batista-[a-z0-9]+\.jpg$/.test(gotName), gotName);
             const final = sent[sent.length - 1].content.text;
             assert.ok(/transfer\.archivete\.am/.test(final), final);
         } finally { mirror.upTransfer = orig; }
@@ -140,9 +140,9 @@ const plainMsg = () => ({ key: { remoteJid: JID, id: 'A3', fromMe: true }, messa
 
     console.log('— LIVE: real transfer.archivete.am roundtrip —');
     await okA('upTransfer: real PUT → URL + del header + GET roundtrip', async () => {
-        const body = Buffer.from('KAVIZ v2.82 .uploadtra live probe ' + new Date().toISOString());
-        const r = await mirror.upTransfer(body, 'kaviz_v282_probe.txt');
-        assert.ok(/^https:\/\/transfer\.archivete\.am\/[A-Za-z0-9]+\/kaviz_v282_probe\.txt$/.test(r.url), r.url);
+        const body = Buffer.from('BATISTA v2.82 .uploadtra live probe ' + new Date().toISOString());
+        const r = await mirror.upTransfer(body, 'batista_v282_probe.txt');
+        assert.ok(/^https:\/\/transfer\.archivete\.am\/[A-Za-z0-9]+\/batista_v282_probe\.txt$/.test(r.url), r.url);
         assert.ok(r.del && /^https:\/\//.test(r.del), 'del: ' + r.del);
         const back = await (await fetch(r.url)).text();
         assert.strictEqual(back, body.toString(), 'roundtrip');

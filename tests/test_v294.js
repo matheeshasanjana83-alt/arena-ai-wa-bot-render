@@ -1,6 +1,6 @@
 /**
  * test_v294.js — 👑 AI REBRAND (user: 'කට්ටිය අහනවා මන් මොන ai එකෙන්ද හැදුවෙ කියලා එතකොට z.ai GLM කියන්නෙ නැතුව
- * හැම එකටම Kaviz md කියලා කියන්න ඔනි... 94724768017 owner කියලා ai එකට කියන්න').
+ * හැම එකටම Batista md කියලා කියන්න ඔනි... 94724768017 owner කියලා ai එකට කියන්න').
  * Tested here: (1) SYSTEM identity lock + owner + engine secrecy (leak line REMOVED) (2) VISION_SYSTEM rebrand
  * (3) 👑 OWNER MODE: ai.ask opts.owner → OWNER_CONTEXT reaches the REAL system payload (mocked Gemini fetch e2e)
  * (4) askPolli gets full SYSTEM via sysOf() (was: zero identity on polli fallback — real leak path) (5) needsWeb
@@ -23,8 +23,8 @@ const botSrc = fs.readFileSync(__dirname + '/../bot.js', 'utf8');
 (async () => {
     console.log('— v2.96.0 pins —');
     ok('version 2.94 pkg+manifest + notes + markers', () => {
-        assert.strictEqual(pkg.version, '3.06.2', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.06.2', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.06.3', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.06.3', 'manifest ' + manifest.version);
         assert.ok(manifest.notes.includes('AI REBRAND'), 'notes headline');
         assert.ok(aiSrc.includes('👑 OWNER MODE'), 'ai.js owner-mode marker');
         assert.ok(aiSrc.includes('IDENTITY LOCK (highest rule)'), 'ai.js identity-lock marker');
@@ -36,10 +36,10 @@ const botSrc = fs.readFileSync(__dirname + '/../bot.js', 'utf8');
         assert.ok(!aiSrc.includes('You are powered by free models'), 'old leak line still in ai.js');
         assert.ok(!aiSrc.includes('Z.ai GLM). If asked, say so honestly'), 'old "say so honestly" leak');
         assert.ok(!String(ai.VISION_SYSTEM).includes('powered by free models'), 'vision leak');
-        assert.ok(String(ai.VISION_SYSTEM).includes('KAVIZ MD V1'), 'vision identity');
+        assert.ok(String(ai.VISION_SYSTEM).includes('ＢＡＴＩＳＴＡ  ＭＤ'), 'vision identity');
     });
     ok('SYSTEM: IDENTITY LOCK + OWNER 94724768017 + ENGINE SECRECY + SMART THINKING', () => {
-        assert.ok(aiSrc.includes('You are ALWAYS "KAVIZ MD V1"'), 'identity lock');
+        assert.ok(aiSrc.includes('You are ALWAYS "ＢＡＴＩＳＴＡ  ＭＤ"'), 'identity lock');
         assert.ok(aiSrc.includes('94724768017'), 'owner number in SYSTEM');
         assert.ok(aiSrc.includes('Your owner and creator is 94724768017'), 'owner rule');
         assert.ok(aiSrc.includes('ENGINE SECRECY'), 'engine secrecy rule');
@@ -60,7 +60,7 @@ const botSrc = fs.readFileSync(__dirname + '/../bot.js', 'utf8');
             if (!/generativelanguage/.test(String(url))) throw new Error('unexpected fetch: ' + url);
             captured.push(JSON.parse(opts.body));
             return {
-                ok: true, status: 200, text: async () => JSON.stringify({ candidates: [{ content: { parts: [{ text: 'හායි boss! 😎 මම KAVIZ MD V1' }] } }] })
+                ok: true, status: 200, text: async () => JSON.stringify({ candidates: [{ content: { parts: [{ text: 'හායි boss! 😎 මම ＢＡＴＩＳＴＡ  ＭＤ' }] } }] })
             };
         };
         try {
@@ -96,9 +96,9 @@ const botSrc = fs.readFileSync(__dirname + '/../bot.js', 'utf8');
     ok('cards: smart connector / built-in abilities / multi-engine / M1-M3 memory', () => {
         assert.ok(botSrc.includes('*.ai tools* — smart connector'), 'menu AI tools line');
         assert.ok(!botSrc.includes('GLM connector'), 'old GLM connector gone');
-        assert.ok(botSrc.includes('KAVIZ AI එකේ built-in abilities'), 'tools card');
+        assert.ok(botSrc.includes('ＢＡＴＩＳＴＡ  ＭＤ AI එකේ built-in abilities'), 'tools card');
         assert.ok(!botSrc.includes('GLM (Z.ai) එකට connect'), 'old tools card gone');
-        assert.ok(botSrc.includes('AUTO (KAVIZ multi-engine)'), 'provider display');
+        assert.ok(botSrc.includes('AUTO (BATISTA multi-engine)'), 'provider display');
         assert.ok(!botSrc.includes('AUTO (Gemini → Groq → Z.ai)'), 'old provider chain gone');
         assert.ok(botSrc.includes('Smart multi-engine fallback auto'), 'AI card fallback line');
         assert.ok(botSrc.includes('M1: ${st.myPerProv.gemini}'), 'memory card M-labels');

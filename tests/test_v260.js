@@ -97,7 +97,7 @@ const FAKE_CAPS = {
 
     // ═══ [5] REAL handle() E2E — offline local SRT server ═══
     console.log('\n[5] handle() E2E — sub pick → .srt document');
-    const SRT = Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nKAVIZ SUB TEST\n');
+    const SRT = Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nBATISTA SUB TEST\n');
     const srv = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'application/octet-stream' }); res.end(SRT); });
     await new Promise(r => srv.listen(0, '127.0.0.1', r));
     const SUB_URL = `http://127.0.0.1:${srv.address().port}/sub.srt`;

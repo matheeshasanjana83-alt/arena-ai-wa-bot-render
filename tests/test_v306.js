@@ -21,10 +21,10 @@ const checkA = async (n, fn, soft) => { try { await fn(); ok(n); } catch (e) { i
     const R = path.join(__dirname, '..');
 
     // [1] version pins
-    check('[1] version 3.06.2 pkg+manifest + manifest lists test_v306.js', () => {
-        assert.strictEqual(require('../package.json').version, '3.06.2', 'pkg version');
+    check('[1] version 3.06.3 pkg+manifest + manifest lists test_v306.js', () => {
+        assert.strictEqual(require('../package.json').version, '3.06.3', 'pkg version');
         const m = JSON.parse(fs.readFileSync(path.join(R, 'manifest.json'), 'utf8'));
-        assert.strictEqual(m.version, '3.06.2', 'manifest version');
+        assert.strictEqual(m.version, '3.06.3', 'manifest version');
         assert(m.files.includes('tests/test_v306.js'), 'manifest.files missing test_v306.js');
         assert(m.notes.includes('STREAM-PIPE'), 'manifest.notes marker');
     });
@@ -60,13 +60,13 @@ const checkA = async (n, fn, soft) => { try { await fn(); ok(n); } catch (e) { i
     //     (same code path a 1GB movie takes, just with a 2KB payload;
     //      seed via upTransfer (direct-file URL) because qu.ax short links serve an HTML viewer)
     await checkA('[5] LIVE stream round-trip → chain host → bytes match', async () => {
-        const payload = Buffer.from('kaviz v306 stream-pipe test ' + Date.now() + ' · ' + 'x'.repeat(2048));
-        const seed = await mirror.upTransfer(payload, 'kaviz-v306-src.txt');
+        const payload = Buffer.from('batista v306 stream-pipe test ' + Date.now() + ' · ' + 'x'.repeat(2048));
+        const seed = await mirror.upTransfer(payload, 'batista-v306-src.txt');
         assert(/^https?:\/\//.test(seed.url), 'seed url: ' + seed.url);
         let ticks = 0;
         const out = await mirror.streamUpload(seed.url, {
             total: payload.length,
-            name: 'kaviz-v306-out.txt',
+            name: 'batista-v306-out.txt',
             onProgress: () => { ticks++; },
         });
         assert(/^https?:\/\//.test(out.url), 'out url: ' + out.url);

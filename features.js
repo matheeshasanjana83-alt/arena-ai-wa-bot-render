@@ -1,5 +1,5 @@
 /**
- * features.js — extra commands for KAVIZ MD V1 (v2.15), ported from SmokeBoy v3.7 (abc repo)
+ * features.js — extra commands for ＢＡＴＩＳＴＡ  ＭＤ (v2.15), ported from SmokeBoy v3.7 (abc repo)
  *   YouTube: .yts .play .song/.yta .video/.ytv (.yt)     Social: .tiktok .fb/.facebook .ig .x
  *   Search: .wiki    GitHub: .gitclone    Tools: .sticker .take    Group: .tagall .kick .promote .demote .grouplink .groupinfo .jid
  * Every command is owner-only (checked in bot.js before we get here).
@@ -480,7 +480,7 @@ async function wiki(send, jid, msg, raw) {
     let lang = 'en', q = raw;
     const m = raw.match(/^(si|en|ta|hi)\s+(.+)$/i);
     if (m) { lang = m[1].toLowerCase(); q = m[2]; } else if (/[\u0D80-\u0DFF]/.test(raw)) lang = 'si';
-    const UA = { 'User-Agent': 'KAVIZ-MD-WhatsApp-bot/2.15 (private)' };
+    const UA = { 'User-Agent': 'BATISTA-MD-WhatsApp-bot/2.15 (private)' };
     const sum = async (t) => fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t.replace(/ /g, '_'))}`, { headers: UA });
     let r = await sum(q), d = r.ok ? await r.json() : null;
     if (!d?.extract) {
@@ -501,7 +501,7 @@ async function gitclone(send, jid, msg, q, download, react) {
     const mm = q.match(/github\.com\/([\w.-]+)\/([\w.-]+)/i) || q.trim().match(/^([\w.-]+)\/([\w.-]+)$/);
     if (!mm) return send(jid, { text: `🐙 *.gitclone user/repo* — repo → zip\n${foot('උදා: .gitclone whdclvr/NodeJS')}` }, { quoted: msg });
     const owner = mm[1], repo = mm[2].replace(/\.git$/, '');
-    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: { 'User-Agent': 'kaviz-md-bot', Accept: 'application/vnd.github+json' } });
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: { 'User-Agent': 'batista-md-bot', Accept: 'application/vnd.github+json' } });
     if (r.status === 404) return send(jid, { text: `❌ ${owner}/${repo} — repo එක නෑ / private` }, { quoted: msg });
     if (!r.ok) return send(jid, { text: `❌ GitHub ${r.status}` }, { quoted: msg });
     const d = await r.json();
@@ -645,21 +645,24 @@ async function vv(send, jid, msg) {
 // ───────── Sticker ─────────
 let mediaDownloader = null;   // set by bot.js (Baileys downloadMediaMessage)
 async function sticker(send, jid, msg, args, take) {
+    console.log('DBG-STICKER enter take=' + take);
     const own = unwrap(msg.message), ci = ctxInfo(msg);
     let src = null, kind = null;
     const pick = (m) => m?.imageMessage ? 'image' : m?.videoMessage ? 'video' : m?.stickerMessage ? 'sticker' : null;
     if (pick(own)) { kind = pick(own); src = { key: msg.key, message: own }; }
     else if (ci?.quotedMessage && pick(unwrap(ci.quotedMessage))) { const q = unwrap(ci.quotedMessage); kind = pick(q); src = { key: { remoteJid: msg.key.remoteJid, id: ci.stanzaId, participant: ci.participant, fromMe: false }, message: q }; }
     if (!src) return send(jid, { text: '🖼️ *.sticker*  (*.s*)\n• Photo / video එකක් යවලා caption එකට *.s*\n• නැත්නම් photo / video / sticker එකකට reply කරලා *.s*\n\n🎁 *.take Pack | Author*  — sticker එකේ නම වෙනස් කරන්න\n🎞️ Video = තත්පර 6 දක්වා' }, { quoted: msg });
-    const [pack, author] = take ? (args.join(' ') || 'KAVIZ MD V1').split('|').map((s) => s.trim()) : ['KAVIZ MD V1', 'KAVIZ MD V1'];
+    const [pack, author] = take ? (args.join(' ') || 'ＢＡＴＩＳＴＡ  ＭＤ').split('|').map((s) => s.trim()) : ['ＢＡＴＩＳＴＡ  ＭＤ', 'ＢＡＴＩＳＴＡ  ＭＤ'];
     try {
         const buf = await mediaDownloader(src);
         const m = src.message;
         if (kind === 'video' && (m.videoMessage?.seconds || 0) > 15) return send(jid, { text: '🎞️ Video එක තත්පර 15 ට අඩු වෙන්න ඕනේ' }, { quoted: msg });
-        const out = kind === 'sticker' ? await media.addExif(buf, pack || 'KAVIZ MD V1', author || 'KAVIZ MD V1')
-            : await media.makeSticker(buf, { animated: kind === 'video' || !!m.imageMessage?.mimetype?.includes('gif'), pack: pack || 'KAVIZ MD V1', author: author || 'KAVIZ MD V1' });
+        const out = kind === 'sticker' ? await media.addExif(buf, pack || 'ＢＡＴＩＳＴＡ  ＭＤ', author || 'ＢＡＴＩＳＴＡ  ＭＤ')
+            : await media.makeSticker(buf, { animated: kind === 'video' || !!m.imageMessage?.mimetype?.includes('gif'), pack: pack || 'ＢＡＴＩＳＴＡ  ＭＤ', author: author || 'ＢＡＴＩＳＴＡ  ＭＤ' });
+        console.log('DBG-STICKER ok bytes=' + (out && out.length));
         return send(jid, { sticker: out }, { quoted: msg });
     } catch (e) {
+        console.log('DBG-STICKER ERR: ' + (e && e.message));
         return send(jid, { text: '❌ Sticker එක හදන්න බැරි වුණා: ' + String(e.message).slice(0, 200) }, { quoted: msg });
     }
 }

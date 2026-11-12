@@ -1,5 +1,5 @@
 /**
- * antibug.js — KAVIZ MD V1 🛡️ Anti-Bug (v2.34.0 — real crasher-toolkit analysis: 10 leaked tools)
+ * antibug.js — ＢＡＴＩＳＴＡ  ＭＤ 🛡️ Anti-Bug (v2.34.0 — real crasher-toolkit analysis: 10 leaked tools)
  *
  * "Bug" messages = messages built to freeze/crash WhatsApp. v2.32 covered the MishuCrasher-panel
  * classes; v2.34 added every class found by DISSECTING 10 real leaked bug tools (AmbaCrash v14,

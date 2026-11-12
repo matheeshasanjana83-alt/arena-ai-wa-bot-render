@@ -14,7 +14,7 @@
     process.env.ARENA_ON_PANEL = onPanel ? '1' : '';
 }
 /**
- * KAVIZ MD V1 — private WhatsApp bot:  .ai <question>  +  .download <link> [link2 ...]
+ * ＢＡＴＩＳＴＡ  ＭＤ — private WhatsApp bot:  .ai <question>  +  .download <link> [link2 ...]
  * Works only for YOU (messages you send). Others are ignored silently.
  */
 const fs = require('fs');
@@ -54,10 +54,19 @@ const reminders = require('./reminders');
 
 const AUTH = path.join(__dirname, 'auth');
 const LOGO = path.join(__dirname, 'logo.img');        // your own photo (.setlogo) — never touched by .update
-const BANNER = path.join(__dirname, 'banner.jpg');    // default KAVIZ MD V1 banner
+const BANNER_VID = path.join(__dirname, 'banner.mp4'); // 🎬 v3.06.3: ＢＡＴＩＳＴＡ  ＭＤ banner VIDEO (60s phonk edit — beat-synced cuts)
+try { fs.rmSync(path.join(__dirname, 'banner.jpg'), { force: true }); } catch { }   // old static banner removed — every bot self-cleans on boot
+/** banner payload for menu / settings / mode / alive cards — LOGO (user's .setlogo) > banner video > null (text only) */
+function bannerMedia() {
+    try {
+        if (fs.existsSync(LOGO)) return { image: fs.readFileSync(LOGO) };
+        if (fs.existsSync(BANNER_VID)) return { video: fs.readFileSync(BANNER_VID), mimetype: 'video/mp4' };
+    } catch { }
+    return null;
+}
 const ANNOUNCE_NEXT = path.join(__dirname, '.announce-next');
 let SOCK = null;
-// 📨 v2.12.2: KAVIZ agent → your WhatsApp. The agent writes agent-msg.txt on the panel (panel API) → bot sends it to "Message yourself"
+// 📨 v2.12.2: BATISTA agent → your WhatsApp. The agent writes agent-msg.txt on the panel (panel API) → bot sends it to "Message yourself"
 const AGENT_MSG = path.join(__dirname, 'agent-msg.txt');
 let agentTimer = null;
 async function agentTick(send) {
@@ -67,8 +76,8 @@ async function agentTick(send) {
         fs.renameSync(AGENT_MSG, tmp);
         const t = fs.readFileSync(tmp, 'utf8').trim(); fs.rmSync(tmp, { force: true });
         if (!t) return false;
-        for (const part of ai.splitLong(t.slice(0, 12000))) await send(ME.pn, { text: '🤖 *KAVIZ Agent*\n\n' + part });
-        log('📨 KAVIZ agent message → Message yourself');
+        for (const part of ai.splitLong(t.slice(0, 12000))) await send(ME.pn, { text: '🤖 *BATISTA Agent*\n\n' + part });
+        log('📨 BATISTA agent message → Message yourself');
         return true;
     } catch (e) { log('agent inbox: ' + e.message); return false; }
 }
@@ -131,7 +140,7 @@ function getText(m) {
     return (x?.conversation || x?.extendedTextMessage?.text || x?.imageMessage?.caption || x?.documentMessage?.caption || x?.videoMessage?.caption || '').trim();
 }
 
-const HELP = `*◈ KAVIZ MD V1 ◈* — commands
+const HELP = `*◈ ＢＡＴＩＳＴＡ  ＭＤ ◈* — commands
 
 📥 *.download <link>* (*.dl*) · *.mediafire* · *.mega* · *.gdrive* · *.terabox* · *.metdn* · *.video* (yt) · *.song* (yt) · *.apk <app>*
 📥 *.mirror <link>* · *.gitclone user/repo*
@@ -171,7 +180,7 @@ let botStatus = 'starting';
 // 🌐 v2.29: pair site — panel port එකේම web page එකක් (number එක දාලා pairing code ගන්න) + /status JSON (පරණ behavior)
 try {
     require('./pairsite').start({
-        status: () => ({ bot: 'KAVIZ MD V1', status: botStatus, uptime: Math.floor(process.uptime()) }),
+        status: () => ({ bot: 'ＢＡＴＩＳＴＡ  ＭＤ', status: botStatus, uptime: Math.floor(process.uptime()) }),
         getSock: () => SOCK,
         log,
         logs: () => LOGS.join('\n'),
@@ -420,7 +429,7 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                 if (c === '.update') { await handleUpdate(send, jid, msg, rest[0] === 'force'); continue; }
                 if (c === '.version') {
                     const cur = updater.localInfo();
-                    let t = `🤖 *KAVIZ MD V1* v${cur.version}${cur.sha ? ' (' + cur.sha.slice(0, 7) + ')' : ''}`;
+                    let t = `🤖 *ＢＡＴＩＳＴＡ  ＭＤ* v${cur.version}${cur.sha ? ' (' + cur.sha.slice(0, 7) + ')' : ''}`;
                     try { const ch = await updater.check(); t += ch.upToDate ? '\n✅ අලුත්ම version එක' : `\n🆕 Update එකක් තියෙනවා: v${ch.latest.manifest.version}\n➡️ *.update* ගහන්න`; } catch (e) { t += '\n(update check fail: ' + e.message + ')'; }
                     t += `\n🔄 auto-update: ${autoupdate.statusText()}`;
                     await send(jid, { text: t }, { quoted: msg }); continue;
@@ -445,7 +454,7 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                         return send(jid, { text: `🤖 *AI PROVIDER*\n\n✦ දැන්: *${cur ? cur.toUpperCase() : 'AUTO'}*\n✦ AUTO order: Gemini → Groq → Z.ai\n\nවෙනස් කරන්න: *.aiprovider gemini* / *.aiprovider groq* / *.aiprovider zai* / *.aiprovider auto*\n✦ *.setting* → 10 එකෙනුත් පුළුවන්` }, { quoted: msg });
                     }
                     const set2 = ai.setProvider(arg2);
-                    const label2 = { '': 'AUTO (KAVIZ multi-engine)', gemini: 'GEMINI', groq: 'GROQ', zai: 'Z.AI' }[set2];
+                    const label2 = { '': 'AUTO (BATISTA multi-engine)', gemini: 'GEMINI', groq: 'GROQ', zai: 'Z.AI' }[set2];
                     const hint2 = set2 && !ai.getKeys()[set2] ? `\n⚠️ ඒ provider එකේ key එක නෑ — .setkey ${set2} <KEY>` : '';
                     return send(jid, { text: `✅ AI provider: *${label2}*${hint2}` }, { quoted: msg });
                 }
@@ -577,7 +586,7 @@ function menuCaption(name) {
     const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
     const ram = Math.round(process.memoryUsage().rss / 1048576);
     return [
-        '*◈ KAVIZ MD V1 · MENU ◈*',
+        '*◈ ＢＡＴＩＳＴＡ  ＭＤ · MENU ◈*',
         `👋 ʜɪ *${String(name || 'Boss').slice(0, 25)}*`,
         '',
         '╭─〔 ⚡ *INFO* 〕',
@@ -601,12 +610,12 @@ async function handleMenu(send, jid, msg, arg) {
         return send(jid, { text: cat[2].replace('{MAX}', human(maxBytes())) + '\n' + foot('↩️ *.menu*') }, { quoted: msg });
     }
     const caption = menuCaption(msg.pushName);
-    const img = fs.existsSync(LOGO) ? LOGO : fs.existsSync(BANNER) ? BANNER : null;
-    const sent = await send(jid, img ? { image: fs.readFileSync(img), caption } : { text: caption }, { quoted: msg });
+    const bm = bannerMedia();
+    const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) menuState.set(jid, { id: sent.key.id, at: Date.now() });
 }
 
-// ───────── .setting — settings panel (Asitha-style, K A V I Z - V 1 🍁) ─────────
+// ───────── .setting — settings panel (Asitha-style, ＢＡＴＩＳＴＡ  ＭＤ 🍁) ─────────
 const MAXMB_STEPS = [100, 200, 300, 500, 1000, 2000];
 const COUNT_STEPS = [10, 20, 30, 50, 100];
 function verStr() { try { return updater.localInfo().version; } catch { return require('./package.json').version; } }
@@ -616,12 +625,12 @@ function settingCaption() {
     return [
         '🎀 ≡ *BOT SETTINGS PANEL* ≡ 🍁',
         '',
-        '🍀 | *BOT NAME:* K A V I Z - V 1 🍁',
+        '🍀 | *BOT NAME:* ＢＡＴＩＳＴＡ  ＭＤ 🍁',
         `🍀 | *VERSION:* v${verStr()}`,
         `🍀 | *WORK TYPE:* ${guard.chatMode()}`,
         `🍀 | *AI KEYS:* Gemini ${k.gemini ? '✅' : '❌'} · Groq ${k.groq ? '✅' : '❌'} · Z.ai ${k.zai ? '✅' : '❌'}`,
         `🧠 | *AI MEMORY:* ${m.msgs} msgs · ${m.chats} chats · TTL ${m.ttlDays}d`,
-        `🤖 | *AI PROVIDER:* ${ai.getProvider() ? ai.getProvider().toUpperCase() : 'AUTO (KAVIZ multi-engine)'}`,
+        `🤖 | *AI PROVIDER:* ${ai.getProvider() ? ai.getProvider().toUpperCase() : 'AUTO (BATISTA multi-engine)'}`,
         `🧰 | *AI TOOLS:* ${ai.getTools() ? '✅ ON' : '⛔ OFF'} (smart connector)`,
         `🍀 | *ANTI-BUG:* ${oo(a.on)}`,
         `🍀 | *AUTO REPORT:* ${a.report ? 'on ×' + a.reportCount : 'off'}`,
@@ -669,7 +678,7 @@ function applySetting(n) {
         case 10: { // 🤖 AI provider cycle: AUTO → GEMINI → GROQ → Z.AI
             const nxt = cyc(ai.getProvider() || '', ['', 'gemini', 'groq', 'zai']);
             ai.setProvider(nxt);
-            const label = { '': 'AUTO (KAVIZ multi-engine)', gemini: 'GEMINI', groq: 'GROQ', zai: 'Z.AI' }[nxt];
+            const label = { '': 'AUTO (BATISTA multi-engine)', gemini: 'GEMINI', groq: 'GROQ', zai: 'Z.AI' }[nxt];
             const hint = nxt && !ai.getKeys()[nxt] ? ' ⚠️ ඒ provider එකේ key නෑ — .setkey ' + nxt + ' <KEY>' : '';
             return `🤖 AI provider: ${label}${hint}`;
         }
@@ -684,8 +693,8 @@ async function handleSetting(send, jid, msg, arg) {
         await send(jid, { text: '✅ ' + done }, { quoted: msg });   // toggle confirm → පස්සේ panel refresh
     }
     const caption = settingCaption();
-    const img = fs.existsSync(LOGO) ? LOGO : fs.existsSync(BANNER) ? BANNER : null;
-    const sent = await send(jid, img ? { image: fs.readFileSync(img), caption } : { text: caption }, { quoted: msg });
+    const bm = bannerMedia();
+    const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) settingState.set(jid, { id: sent.key.id, at: Date.now()});   // number replies → අලුත් panel එකටම
 }
 
@@ -699,7 +708,7 @@ function aliveCaption(kind = 'online') {
     const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
     const head = kind === 'updated' ? '🔄 ᴜᴘᴅᴀᴛᴇᴅ' : kind === 'alive' ? '💠 sᴛɪʟʟ ʜᴇʀᴇ' : '🟢 ᴏɴʟɪɴᴇ';
     return [
-        `*◈ KAVIZ MD V1 ◈*  ${head}`,
+        `*◈ ＢＡＴＩＳＴＡ  ＭＤ ◈*  ${head}`,
         `┊ ⚡ v${v} · ⏱ ${fmtUptime(process.uptime())}`,
         `┊ 🕒 ${nowLK()}  ·  🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'}`,
         `┊ 🔒 private  ·  🛡️ anti-ban  ·  🧬 anti-bug ${antibug.cfg().on ? 'ON' : 'OFF'}`,
@@ -708,9 +717,9 @@ function aliveCaption(kind = 'online') {
 }
 async function sendAlive(send, jid, quoted, kind) {
     const caption = aliveCaption(kind);
-    const img = fs.existsSync(LOGO) ? LOGO : fs.existsSync(BANNER) ? BANNER : null;
+    const bm = bannerMedia();
     const opts = quoted ? { quoted } : undefined;
-    if (img) return send(jid, { image: fs.readFileSync(img), caption }, opts);
+    if (bm) return send(jid, { ...bm, caption }, opts);
     return send(jid, { text: caption }, opts);
 }
 
@@ -794,8 +803,8 @@ async function handleMode(send, jid, msg, arg) {
         await send(jid, { text: '✅ mode: ' + MODE_LABELS[arg === 'inbox' ? 3 : 4] }, { quoted: msg });
     }
     const caption = modeCaption();
-    const img = fs.existsSync(LOGO) ? LOGO : fs.existsSync(BANNER) ? BANNER : null;
-    const sent = await send(jid, img ? { image: fs.readFileSync(img), caption } : { text: caption }, { quoted: msg });
+    const bm = bannerMedia();
+    const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) modeState.set(jid, { id: sent.key.id, at: Date.now() });   // number replies → අලුත් panel එකටම
 }
 
@@ -1267,7 +1276,7 @@ async function handleAI(send, jid, msg, question) {
             const on = ai.getTools();
             return send(jid, { text: `🧰 *AI TOOLS* ${on ? '✅ ON' : '⛔ OFF'}
 
-KAVIZ AI එකේ built-in abilities:
+ＢＡＴＩＳＴＡ  ＭＤ AI එකේ built-in abilities:
 ✦ *web search* — අලුත් facts / news
 ✦ *date/time + calculator*
 ✦ *image gen* — 🎨 photo / art / anime හදනවා
@@ -1430,7 +1439,7 @@ process.on('unhandledRejection', (e) => log('unhandled: ' + (e?.message || e)));
 process.on('uncaughtException', (e) => log('uncaught: ' + e.message));
 module.exports = { _agentTick: agentTick, AGENT_MSG, handleDownload, getText, onMessages, replyJid, ME, aliveCaption, OWNER_CMDS, modeCaption, handleForward, maybeAiReply, handleAI, _aiLast: aiLast, _groupLog: groupLog, _glogPush: glogPush, SITE_DL, _setMediaDownloader: (f) => { mediaDownloader = f; }, _setSock: (x) => { SOCK = x; }, _dlQueue: dlQueue, _dlDepth: () => dlDepth, _dlBudgetMin: dlBudgetMin };
 if (require.main === module) {
-    console.log('🚀 KAVIZ MD V1 starting...');
+    console.log('🚀 ＢＡＴＩＳＴＡ  ＭＤ starting...');
     require('./media').checkUpdate(true).catch(() => { });   // yt-dlp fresh → FB "Cannot parse data" / YT format errors fix (max 1 check/hour)
     require('./proxypool').warmup();                          // free-proxy pool check in background (net.js / yt-dlp fallback)
     reminders.start({ getSock: () => SOCK, log });               // ⏰ reminders scheduler (v2.51)

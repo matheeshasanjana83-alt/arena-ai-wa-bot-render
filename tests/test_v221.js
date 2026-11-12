@@ -28,7 +28,7 @@ const checkA = async (name, fn) => { try { await fn(); ok(name); } catch (e) { b
     // [2] LIVE: small buffer → qu.ax → link reachable
     let firstUrl = null;
     await checkA('[2] LIVE uploadBuffer (tiny) → link 200', async () => {
-        const r = await mirror.uploadBuffer(Buffer.from('kaviz v221 relay test ' + Date.now()), 'kaviz-test.txt');
+        const r = await mirror.uploadBuffer(Buffer.from('batista v221 relay test ' + Date.now()), 'batista-test.txt');
         assert(/^https?:\/\//.test(r.url), 'no url: ' + r.url);
         assert(r.host === 'qu.ax' || r.host === 'transfer', 'host=' + r.host);
         firstUrl = r.url;
@@ -38,10 +38,10 @@ const checkA = async (name, fn) => { try { await fn(); ok(name); } catch (e) { b
 
     // [3] LIVE: upTransfer direct (stream path used for big files)
     await checkA('[3] LIVE upTransfer(file) → link 200', async () => {
-        const p = path.join(require('os').tmpdir(), 'kaviz-v221-t.txt');
+        const p = path.join(require('os').tmpdir(), 'batista-v221-t.txt');
         fs.writeFileSync(p, 'transfer stream test ' + Date.now());
         try {
-            const r = await mirror.upTransfer(p, 'kaviz-v221-t.txt');
+            const r = await mirror.upTransfer(p, 'batista-v221-t.txt');
             assert(/^https?:\/\//.test(r.url), 'no url');
             const head = await fetch(r.url);
             assert(head.ok, 'GET → ' + head.status);

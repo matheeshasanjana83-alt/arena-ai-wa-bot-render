@@ -1,6 +1,6 @@
 'use strict';
 /**
- * proxypool.js — free-proxy pool for KAVIZ MD V1 (v2.16)
+ * proxypool.js — free-proxy pool for ＢＡＴＩＳＴＡ  ＭＤ (v2.16)
  *
  *  proxies.txt      — shipped list (repo එකෙන් එනවා, .update එකෙන් අලුත් වෙනවා)
  *  proxies.user.txt — ඔයාගේම proxies (update වෙද්දි මැකෙන්නේ නෑ; line එකකට එකක්,
@@ -107,7 +107,7 @@ async function checkOne(url) {
     if (!undici) return false;
     try {
         const agent = agentFor(url);
-        const r = await undici.fetch(CHECK_URL, { dispatcher: agent, signal: AbortSignal.timeout(CHECK_TIMEOUT), headers: { 'User-Agent': 'kaviz-md-bot' } });
+        const r = await undici.fetch(CHECK_URL, { dispatcher: agent, signal: AbortSignal.timeout(CHECK_TIMEOUT), headers: { 'User-Agent': 'batista-md-bot' } });
         try { await r.body?.cancel(); } catch { }
         return r.status >= 200 && r.status < 400;
     } catch { return false; }
@@ -173,13 +173,13 @@ function addFetched(text) {
 async function fetchOne(src) {
     let txt = '';
     try {   // plain fetch first (github raw / proxyscrape are never blocked on normal panels)
-        const r = await undici.fetch(src, { signal: AbortSignal.timeout(FETCH_TIMEOUT), headers: { 'User-Agent': 'kaviz-md-bot' } });
+        const r = await undici.fetch(src, { signal: AbortSignal.timeout(FETCH_TIMEOUT), headers: { 'User-Agent': 'batista-md-bot' } });
         if (r.ok) txt = await r.text();
     } catch { }
     if (!txt) {
         try {   // blocked network → smartFetch (DoH / proxy routes)
             const { smartFetch } = require('./net');
-            const r = await smartFetch(src, { headers: { 'User-Agent': 'kaviz-md-bot' }, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+            const r = await smartFetch(src, { headers: { 'User-Agent': 'batista-md-bot' }, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
             if (r.ok) txt = await r.text();
         } catch { }
     }

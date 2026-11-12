@@ -1,6 +1,6 @@
 'use strict';
 /**
- * zetasub.js — KAVIZ MD V1 v3.01.0 — 🎬 CineSubz/Cineru (zetaflix-family) engine for the
+ * zetasub.js — ＢＡＴＩＳＴＡ  ＭＤ v3.01.0 — 🎬 CineSubz/Cineru (zetaflix-family) engine for the
  * SEPARATE .cinesubz / .cineru commands (v3.01.0 — user: "Moviedex command එකට cinesubz,cineru
  * mix කරන්න එපා ඒ දෙක වෙනම command දෙකක් ලෙස ඇඩ් කරන්න" → moviedex is MovieBox-ONLY again;
  * every zeta touchpoint lives HERE, nothing leaks into moviedex menus).
