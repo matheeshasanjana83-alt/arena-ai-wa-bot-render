@@ -85,8 +85,8 @@ const WATCH_JSON = { headers: { Referer: 'https://kwik.cx/' }, sources: [
     console.log('— v3.05.0 consumet-only animepahe suite —');
 
     await ok('pins: package.json + manifest.json = 3.05.0', () => {
-        assert.strictEqual(pkg.version, '3.06.0');
-        assert.strictEqual(man.version, '3.06.0');
+        assert.strictEqual(pkg.version, '3.06.2');
+        assert.strictEqual(man.version, '3.06.2');
     });
 
     await ok('NEGATIVE markers: vm sandbox · cfsolver · cf_clearance · direct-scrape machinery ALL GONE', () => {
@@ -95,9 +95,10 @@ const WATCH_JSON = { headers: { Referer: 'https://kwik.cx/' }, sources: [
         }
         assert.ok(!fs.existsSync(path.join(REPO, 'cfsolver.js')), 'cfsolver.js deleted');
         assert.ok(!fs.existsSync(path.join(REPO, 'scripts', 'get-chrome.js')), 'scripts/get-chrome.js deleted');
-        for (const f of ['test_v303.js', 'test_v304.js', 'test_v305.js', 'test_v306.js', 'test_v307.js']) {
+        for (const f of ['test_v303.js', 'test_v304.js', 'test_v305.js', 'test_v307.js']) {
             assert.ok(!fs.existsSync(path.join(REPO, 'tests', f)), `superseded suite ${f} deleted`);
         }
+        assert.ok(fs.existsSync(path.join(REPO, 'tests', 'test_v306.js')), 'test_v306.js = the v3.06 .mirror suite (name REUSED since v3.06.0 — must EXIST)');
     });
 
     await ok('hardcoded default base + precedence env > settings.json > default', () => {
@@ -269,11 +270,11 @@ const WATCH_JSON = { headers: { Referer: 'https://kwik.cx/' }, sources: [
             assert.ok(!Object.keys(pkg.dependencies).some(k => k.includes(d)), `no ${d} in dependencies`);
             assert.ok(!pkg.optionalDependencies || !Object.keys(pkg.optionalDependencies).some(k => k.includes(d)), `no ${d} in optionalDependencies`);
         }
-        assert.strictEqual(pkg.scripts.postinstall, 'node launcher.js');
+        assert.ok(!pkg.scripts.postinstall, 'postinstall ABSENT (dcec08f — panel npm install must never run launcher)');
         assert.ok(!man.files.includes('cfsolver.js'), 'cfsolver out of manifest');
         assert.ok(!man.files.includes('scripts/get-chrome.js'), 'get-chrome out of manifest');
         assert.ok(man.files.includes('tests/test_v308.js'), 'test_v308 in manifest');
-        assert.ok(!man.files.some(f => /^tests\/test_v30[3-7]\.js$/.test(f)), 'old suites out of manifest');
+        assert.ok(!man.files.some(f => /^tests\/test_v30[3-57]\.js$/.test(f)), 'old suites out of manifest');
     });
 
     console.log(`\n${passN} pass / ${failN} fail`);

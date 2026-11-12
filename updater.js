@@ -7,7 +7,7 @@ const path = require('path');
 const vm = require('vm');
 const { spawn } = require('child_process');
 
-const REPO = process.env.UPDATE_REPO || 'matheeshasanjana83-alt/Arena-Ai-WA-BOT';
+const REPO = process.env.UPDATE_REPO || 'matheeshasanjana83-alt/arena-ai-wa-bot-render';
 const DIR = (process.env.UPDATE_DIR ?? '').replace(/^\/+|\/+$/g, '');   // '' = repo root
 const BRANCH = process.env.UPDATE_BRANCH || 'main';
 const ROOT = __dirname;

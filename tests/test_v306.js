@@ -21,10 +21,10 @@ const checkA = async (n, fn, soft) => { try { await fn(); ok(n); } catch (e) { i
     const R = path.join(__dirname, '..');
 
     // [1] version pins
-    check('[1] version 3.06.0 pkg+manifest + manifest lists test_v306.js', () => {
-        assert.strictEqual(require('../package.json').version, '3.06.0', 'pkg version');
+    check('[1] version 3.06.2 pkg+manifest + manifest lists test_v306.js', () => {
+        assert.strictEqual(require('../package.json').version, '3.06.2', 'pkg version');
         const m = JSON.parse(fs.readFileSync(path.join(R, 'manifest.json'), 'utf8'));
-        assert.strictEqual(m.version, '3.06.0', 'manifest version');
+        assert.strictEqual(m.version, '3.06.2', 'manifest version');
         assert(m.files.includes('tests/test_v306.js'), 'manifest.files missing test_v306.js');
         assert(m.notes.includes('STREAM-PIPE'), 'manifest.notes marker');
     });
