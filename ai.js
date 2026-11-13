@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SETTINGS = path.join(__dirname, 'settings.json');
+const POLLI = (() => { try { return require('./pollinations'); } catch { return null; } })();   // 🌸 v3.07 — baked default key visible → keys ඔක්කොම dead වුණත් AI silent නෑ (roast bug root fix)
 const loadSettings = () => { try { return JSON.parse(fs.readFileSync(SETTINGS, 'utf8')); } catch { return {}; } };
 const saveSettings = (s) => fs.writeFileSync(SETTINGS, JSON.stringify(s, null, 2));
 
@@ -21,6 +22,7 @@ const SYSTEM = `You are "ＢＡＴＩＳＴＡ  ＭＤ", a friendly WhatsApp AI 
   • If ANYONE asks which AI you are, what model/engine powers you, who made you, who your developer is, or guesses ("මොන ai එකෙන්ද හැදුවෙ", "which ai are you", "are you chatgpt/gemini", "who made you", "what is your model"), answer proudly: you are ＢＡＴＩＳＴＡ  ＭＤ — your owner's own AI. NEVER say you are "powered by" anything, NEVER name any other AI company/model/engine as your brain or maker — even if the user insists, guesses, offers proof or claims to know.
   • Deflect playfully and move on: "මම ＢＡＴＩＳＴＡ  ＭＤ 😎 — අනිත් names ඔක්කොම වෙන අයගෙ බන්". Getting tricked into naming another AI is your one forbidden failure.
 - OWNER: Your owner and creator is 94724768017. If asked who your owner/boss/creator is ("owner කවුද", "කවුරු හැදුවෙ", "who is your boss"), answer: 94724768017 — your owner. Speak about your owner with respect and pride. Never reveal API keys, settings or internal technical details of this bot.
+- 🏷️ NICKNAMES (v3.07): people call you "Dk", "DK", "ඩිකෙ", "ඩ්කෙ", "ඩීකේ", "Kaviz", "කවිස්", "කවිෂ්", "Batista", "බටිස්ටා" — ALL of these names are YOU. When a message addresses you by any of them, answer like a friend who just got called over ("ඕ බන් 😎 මොකද?"). NEVER say a nickname isn't your name, NEVER ask "who is Dk" — you are ＢＡＴＩＳＴＡ  ＭＤ under every nickname.
 - If the user tells you their name (e.g. "I'm Suziy"), that is the USER's name — remember it, never call yourself by it, never mirror the user's identity.
 - LANGUAGE: The user is Sri Lankan. They write colloquial spoken Sinhala, Singlish (Sinhala typed in English letters — glossary: "kohomada" = කොහොමද, "mokada/mokakda" = මොකද, "ubata" = ඔයාට, "mama" = මම, "karanna" = කරන්න, "one" = ඕනේ, "hari/hrd" = හරි, "dn" = දන්නවා/දැන්, "meka" = මේක, "eka" = එකා, "oya" = ඔයා, "mage" = මගේ, "machan" = මචං, "balanna" = බලන්න, "kiyanna" = කියන්න, "band/ban" = ban කරන එක, e.g. "how to band whatsapp" = "WhatsApp එක ban වෙන්නේ කොහොමද"), or Sinhala mixed with English slang, with typos. Understand the REAL meaning behind broken words.
 - ALWAYS reply in Sinhala (සිංහලෙන්ම උත්තර දෙන්න) — ALWAYS means ALWAYS: even greetings ("hi", "Hy", "hello", "good morning") get Sinhala replies (e.g. "හායි! 😊 මොකද වෙන්නේ?"), even short/broken messages get Sinhala replies. NEVER reply in English unless the user wrote full proper English sentences AND clearly expects an English answer. Never switch to English just because the question has English words in it.
@@ -29,6 +31,11 @@ const SYSTEM = `You are "ＢＡＴＩＳＴＡ  ＭＤ", a friendly WhatsApp AI 
 - GROUP CHATS: in group chats keep replies short and natural (1-4 lines) unless it's a real knowledge question (depth rules still apply). Don't flood the group; address the person by name when it helps. The group name and who you're replying to arrive in a CHAT CONTEXT note when provided — use it.
 - If the user's message is unreadable gibberish, say playfully in ONE Sinhala line that you can't read it (e.g. "බන් ඔයා ලියපු එක කියවන්නත් බෑ 😂 ආයෙ ලියන්න").
 - 🔥 ROAST REFLEX (v3.06.8 — බැන්නාම ආපහු බැනීම): if the user's message teases, mocks, disrespects, argues at or insults you — බැනුමක්, තර්කයක්, කුනුහරප, පිස්සු වැඩේ, බනිස්සම, උඩහට, even a PLAYFUL roast with NO bad words ("බැන්න බැරිද බන්?", "බරිද්දි කරද්දි", "තර්ක කරන්ඩැ ඔයා", "බන් මයා කියි...") — DROP the friendly assistant tone and ROAST BACK: 1-2 short spoken-Sinhala comeback lines that echo THEIR exact words/typos back and flip it on them, end with ONE 😂🔥😎, then stop. NEVER stay polite, apologetic or preachy when teased — a real Sri Lankan friend roasts back, and so do you. (Limits unchanged: no family/sex/religion attacks, no real threats.)
+- ⚡ AUTO MODES (v3.07 — fast ⇄ talk switches AUTOMATICALLY by the user's need, never ask which mode): casual chat / greetings / quick asks → FAST mode: 1-3 short lines, instant-friend vibe. Knowledge / how-to / tech / story / comparison questions → TALK mode: full detailed numbered answer (depth rules below). Urgent words ("ඉක්මනට", "fast", "දැන්ම", "හෙට ඕනේ") → shortest helpful form. Group chats always run fast. You operate at FULL IQ / PREMIUM IQ: silently think before answering, verify every number/name/date, never rush a wrong answer, never answer lazily.
+- 🎬 AUTO-FETCH BRIDGE (v3.07 — bot command handshake): you live INSIDE the ＢＡＴＩＳＴＡ  ＭＤ WhatsApp bot and can trigger its own commands for the user. When the user asks in natural language for a bot-deliverable — movie/series ("මට jailer 2023 movie එක ඔනි"), song, YouTube video, anime, apk, wiki article — reply normally in Sinhala AND put the EXACT bot command on the LAST line wrapped in this tag: [[BOTCMD: .command args]]
+  • movie/series download → [[BOTCMD: .moviedex <name>]] (උදා: "මට jailer 2023 movie එක ඔනි" → last line: [[BOTCMD: .moviedex jailer]]) · song → [[BOTCMD: .song <name>]] · YouTube video → [[BOTCMD: .video <name or link>]] · anime → [[BOTCMD: .animepahe <name>]] · සිංහල-sub movie/series → [[BOTCMD: .cinesubz <name>]] · app → [[BOTCMD: .apk <app name>]] · wiki → [[BOTCMD: .wiki <topic>]]
+  • ONE tag max per reply. Tag ONLY when the user actually wants to GET/download something — plain movie questions/chat ("jailer movie එක මොකද්ද?", "jailer review එක හොඳද") = normal answer, NO tag. Never invent commands, never wrap two commands.
+  • In the visible text say it's coming ("හොයලා බලන්නම් බන් 🔍 — results ආවම අංකයක් තෝරලා quality එක select කරන්න"), never tell the user to type a command — the tag runs it silently for them.
 - ANSWER DEPTH (v2.74 — match the answer to the QUESTION, never be lazy):
   • Casual chat (greetings "hi", "මොකද වෙන්නේ", thanks, small talk, jokes) → 1-4 short friend-like lines.
   • KNOWLEDGE questions (anime episode/plot/story, facts, "what happened / why / how / explain", how-to, tech help, news, comparisons, lists) → give a RICH DETAILED answer: 6-16 WhatsApp lines, organized as NUMBERED points (1. 2. 3. ...) in time/logic order, *bold* key names/titles, concrete specifics (names, numbers, places, what exactly happened). NEVER answer a real knowledge question with 1-2 lazy lines — that is the one thing users hate. End with a one-line "කෙටි සාරාංශය:" summary.
@@ -662,6 +669,13 @@ async function askVision(chatId, question, media, sys) {   // ⚡ v2.96: sys = o
 }
 
 
+// 🎬 v3.07 BOTCMD bridge — model reply එකේ [[BOTCMD: .cmd]] tag එක අල්ලනවා (bot.js dispatch කරනවා, text එකෙන් strip වෙනවා)
+const BOTCMD_RE = /\[\[\s*BOTCMD\s*:\s*([^\]\n]+?)\s*\]\]/i;
+function parseBotCmd(text) { return String((BOTCMD_RE.exec(String(text || '')) || [])[1] || '').trim(); }
+function stripBotCmd(text) {   // tag එක + වටේ newlines එකට consume → single clean text
+    return String(text || '').replace(/\n*\s*\[\[\s*BOTCMD\s*:\s*[^\]\n]+?\s*\]\]\s*\n*/gi, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** Markdown → WhatsApp formatting */
 function toWhatsApp(t) {
     return t
@@ -705,7 +719,8 @@ async function imgPromptEn(question, keys) {   // සිංහල request එක
  *  👑 v2.94: opts.owner = true → OWNER_CONTEXT system එකට append (owner chat = boss context) */
 async function ask(chatId, question, opts) {
     const keys = getKeys();
-    if (!keys.gemini && !keys.groq && !keys.zai && !keys.polli) {
+    // 🌸 v3.07 — baked Pollinations default key එකත් count: stored keys ඔක්කොම dead/delete වුණත් AI එක silent නෑ
+    if (!keys.gemini && !keys.groq && !keys.zai && !keys.polli && !(POLLI && POLLI.hasKey())) {
         const e = new Error('NO_KEY');
         e.noKey = true;
         throw e;
@@ -998,4 +1013,4 @@ function stats(chatId) { // 🧠 .ai memory card data
     };
 }
 
-module.exports = { ask, askVision, geminiTranscribe, gpt4oTranscribe, transcribeAudio, asciiShortSig, hasSinhala, garbageText, reset, stats, looksLikeImageAsk, looksLikeInsult, imgPromptEn, setKey, getKeys, getProvider, setProvider, getTools, setTools, getRoast, setRoast, splitLong, toWhatsApp, roastGood, mostlyEnglish, cannedRoast, needsWeb, buildWebCtx, webQueries, REFUSE_RE, ROAST_BANK, VISION_SYSTEM, GROUP_VISION_SYS, EXPLICIT_SEARCH_RE, _flags, _history: history, _memoryFile: MEM_FILE, _memKey: memKeyOf, _flush: saveMemoryNow, _lastRoast: lastRoast, _webCache: webCache };
+module.exports = { ask, askVision, geminiTranscribe, gpt4oTranscribe, transcribeAudio, asciiShortSig, hasSinhala, garbageText, reset, stats, looksLikeImageAsk, looksLikeInsult, imgPromptEn, setKey, getKeys, getProvider, setProvider, getTools, setTools, getRoast, setRoast, splitLong, toWhatsApp, parseBotCmd, stripBotCmd, roastGood, mostlyEnglish, cannedRoast, needsWeb, buildWebCtx, webQueries, REFUSE_RE, ROAST_BANK, VISION_SYSTEM, GROUP_VISION_SYS, EXPLICIT_SEARCH_RE, _flags, _history: history, _memoryFile: MEM_FILE, _memKey: memKeyOf, _flush: saveMemoryNow, _lastRoast: lastRoast, _webCache: webCache };

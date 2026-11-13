@@ -75,9 +75,9 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
     let geminiMode = 'ok';
     global.fetch = async (url, opt) => {
         url = String(url);
+        const J = (st, o) => new Response(JSON.stringify(o), { status: st, headers: { 'content-type': 'application/json' } });   // v3.07: hoisted — polli branch එකත් මේම scope එකෙන් (කලින් ReferenceError: J)
         if (url.includes('generativelanguage') || url.includes('api.groq.com')) {
             const body = JSON.parse(opt.body); calls.push({ url, body });
-            const J = (st, o) => new Response(JSON.stringify(o), { status: st, headers: { 'content-type': 'application/json' } });
             if (url.includes('generativelanguage')) {
                 if (geminiMode === 'down') return J(503, { error: { message: 'overloaded' } });
                 if (geminiMode === 'oldmodel' && url.includes('gemini-flash-latest')) return J(404, { error: { message: 'models/gemini-flash-latest is not found' } });
@@ -95,7 +95,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
     const deleted = [];
     const run2 = async (msg) => { out.length = 0; await onMessages({ type: 'notify', messages: [msg] }, send, async (k) => deleted.push(k.id)); return out; };
 
-    r = await run2(mk('.ai hello')); t('.ai key නැතුව → key ගන්න විදිය කියනවා', r.some(x => /aistudio\.google\.com/.test(x.text || '')));
+    r = await run2(mk('.ai hello')); t('.ai key නැතුව → v3.07 baked polli route (key-help card නෑ, honest error එකක්)', r.length > 0 && !r.some(x => /aistudio\.google\.com/.test(x.text || '')) && r.some(x => /mock-polli-down|AI servers/.test(x.text || '')));   // v3.07: baked key → NO_KEY silent/key-help නෑ — polli (mock-down) error card එකෙන් honest reply
     const km = mk('.setkey gemini AIzaSyTESTKEY1234567890abcdef'); r = await run2(km);
     t('.setkey gemini → save + message එක මකනවා', ai.getKeys().gemini === 'AIzaSyTESTKEY1234567890abcdef' && deleted.includes(km.key.id) && r.some(x => /save/.test(x.text)));
     r = await run2(mk('.keys')); t('.keys → key එක mask කරලා පෙන්නනවා', r.some(x => /AIza••••def/.test(x.text || '')) && !r.some(x => /TESTKEY/.test(x.text || '')));

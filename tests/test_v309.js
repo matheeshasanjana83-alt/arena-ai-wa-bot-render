@@ -74,27 +74,29 @@ t(`4 send sites route through menuMedia() (menu/setting/alive/mode) — found ${
 t('old banner.jpg boot-clean + helper before first send site', BOT.indexOf('rmSync') < BOT.indexOf('menuCaption(msg.pushName)'));
 
 // ── (4) manifest v3.06.4 photo-deck pins moved to v3.06.6 (moviedex fix) ──
-t('manifest version 3.06.6', man.version === '3.06.7');
-t('pkg version 3.06.6', pkg.version === '3.06.7');
+t('manifest version 3.07.0', man.version === '3.07.0');
+t('pkg version 3.07.0', pkg.version === '3.07.0');
 t('manifest.files += media/menu/01.jpg..08.jpg', [...Array(8)].every((_, i) => man.files.includes(`media/menu/0${i + 1}.jpg`)));
 t('manifest.files += tests/test_v3010.js', man.files.includes('tests/test_v3010.js'));
 t('manifest.files += tests/test_v3011.js (v3.06.6 moviedex fix)', man.files.includes('tests/test_v3011.js'));
 t('manifest.files += tests/test_v309.js', man.files.includes('tests/test_v309.js'));
-t('manifest.notes opens with v3.06.6 moviedex-fix entry', typeof man.notes === 'string' && man.notes.startsWith('v3.06.7:'));
+t('manifest.notes opens with v3.06.6 moviedex-fix entry', typeof man.notes === 'string' && man.notes.startsWith('v3.07.0:'));
 t('.gitignore ignores media/menu-idx.json (rotation memory is runtime-only)', fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8').includes('media/menu-idx.json'));
 
 // ── (5) FULL REBRAND — zero KAVIZ in runtime src (v3.06.3, still holds) ──
+// v3.07: nickname lines උඩ /kaviz/i brand scan එකෙන් අයින් — "kaviz · කවිස්" කියන්නෙ rebrand නෙවෙයි, user ඉල්ලූ name-trigger list එක (brand-kaviz විතරක් අල්ලනවා)
+const noNick = (src) => src.split('\n').filter((l) => !/\u0d9a\u0dc0\u0dd2\u0dc3\u0dca|\u0db6\u0da7\u0dd2\u0dc3\u0dca\u0da7\u0dcf|\ud83c\udff7\ufe0f/.test(l)).join('\n');   // \u0d9a\u0dc0\u0dd2\u0dc3\u0dca=කවිස් · \u0db6\u0da7\u0dd2\u0dc3\u0dca\u0da7\u0dcf=බටිස්ටා · \ud83c\udff7\ufe0f=name-call marker — nickname context lines (NICK_RE · HELP · MOVIE_STOP_RE · NICKNAMES prompt) strip
 const rootJs = fs.readdirSync(REPO).filter((f) => f.endsWith('.js'));
 let leaks = [];
 for (const f of rootJs) {
     const src = fs.readFileSync(path.join(REPO, f), 'utf8');
-    if (/kaviz/i.test(src)) leaks.push(f);
+    if (/kaviz/i.test(noNick(src))) leaks.push(f);
 }
 t(`zero /kaviz/i in ${rootJs.length} runtime .js files`, leaks.length === 0 && rootJs.length > 20);
 if (leaks.length) console.log('     leaks: ' + leaks.join(', '));
 t('package.json name = batista-md', pkg.name === 'batista-md');
 t('style.js BRAND = ＢＡＴＩＳＴＡ  ＭＤ (footer single-source)', STYLE.includes(`const BRAND = '${FULL}'`));
-t('ai.js persona identity = ＢＡＴＩＳＴＡ  ＭＤ', AI.includes(FULL) && !/kaviz/i.test(AI));
+t('ai.js persona identity = ＢＡＴＩＳＴＡ  ＭＤ', AI.includes(FULL) && !/kaviz/i.test(noNick(AI)));
 t('bot.js HELP header rebranded', BOT.includes(`*◈ ${FULL} ◈* — commands`));
 t('bot.js MENU header rebranded', BOT.includes(`*◈ ${FULL} · MENU ◈*`));
 t('bot.js settings BOT NAME rebranded', BOT.includes(`*BOT NAME:* ${FULL}`));
@@ -110,7 +112,7 @@ for (const f of pinned) {
     const p = path.join(REPO, 'tests', f);
     if (fs.existsSync(p)) {
         const src = fs.readFileSync(p, 'utf8');
-        t(`${f} pins 3.06.6`, src.includes('3.06.7') && !src.includes('3.06.4') && !src.includes('3.06.3'));
+        t(`${f} pins 3.07.0`, src.includes('3.07.0') && !src.includes('3.06.4') && !src.includes('3.06.3'));
     }
 }
 t('no suite still pins 3.06.3/3.06.4 (tests dir, self + runners excluded)', fs.readdirSync(path.join(REPO, 'tests'))

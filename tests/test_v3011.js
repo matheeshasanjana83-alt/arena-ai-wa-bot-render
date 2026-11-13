@@ -66,10 +66,10 @@ console.log('── (5) boot registration simplified ──');
 t('boot re-register without bootstrap condition', MV.includes('if (!tokenUsable(mbUserToken)) scheduleMbRegister(2000)'));
 
 console.log('── (6) version pins ──');
-t('pkg 3.06.5', pkg.version === '3.06.7');
-t('lock 3.06.5', lock.version === '3.06.7');
-t('manifest 3.06.5', man.version === '3.06.7');
-t('notes opens v3.06.6', typeof man.notes === 'string' && man.notes.startsWith('v3.06.7:'));
+t('pkg 3.06.5', pkg.version === '3.07.0');
+t('lock 3.06.5', lock.version === '3.07.0');
+t('manifest 3.06.5', man.version === '3.07.0');
+t('notes opens v3.07.0', typeof man.notes === 'string' && man.notes.startsWith('v3.07.0:'));
 t('manifest lists tests/test_v3011.js', man.files.includes('tests/test_v3011.js'));
 
 console.log('── (7) rebrand + regressions ──');

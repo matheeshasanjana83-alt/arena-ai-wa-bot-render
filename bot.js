@@ -42,6 +42,7 @@ const guard = require('./guard');
 const features = require('./features');
 const tools = require('./tools');
 const moviedex = require('./moviedex');
+const pollinations = require('./pollinations');   // 🌸 v3.07 — baked default key visibility (auto-chat gate → zero-key silent bug fix)
 const animehub = require('./animehub');   // 🎌 v2.75 AniWorld + 🔞 NSFW (hentai-api style)
 const terabox = require('./terabox');   // ☁️ v2.84 TeraBox (jsToken → share/list → dlink)
 const metdn = require('./metdn');   // 🔞 v2.86 mat6tube (window.playlist → signed mp4)
@@ -164,8 +165,8 @@ const HELP = `*◈ ＢＡＴＩＳＴＡ  ＭＤ ◈* — commands
 🛠️ *.tr* · *.tts* · *.weather* · *.lyrics* · *.define* · *.imagine* · *.toimg* · *.tourl* · *.uploadtra* · *.uploadgo* · *.uploadtm* · *.ss* · *.qr* · *.short* · *.calc* · *.github* · *.del* · *.setpp* · *.getdp* · *.vv*
 🎉 *.joke* · *.fact* · *.quote* · *.8ball*
 👥 *.groupinfo* · *.grouplink* · *.tagall* · *.kick* · *.promote* · *.demote* · *.mute* · *.resetlink* · *.jid*
-🤖 *.ai <ප්‍රශ්නය>* (reply කරලත් · *.ai reset* · *.ai memory*)
-⏰ *.remind 10m <note>* · 👁 photo/PDF reply + *.ai* · 🎨 *.ai* — "image එකක් හදලා දෙන්න"
+🤖 *.ai <ප්‍රශ්නය>* (reply කරලත් · *.ai reset* · *.ai memory*) · 🏷️ නමින් කැඳවුවත් reply (Dk · Kaviz · Batista…)
+⏰ *.remind 10m <note>* · 👁 photo/PDF reply + *.ai* · 🎨 *.ai* — "image එකක් හදලා දෙන්න" · 🎬 "jailer movie ඕනේ" කිව්වම AI ම auto .moviedex ගහනවා
 🔧 *.net* · *.setproxy* · *.setconsumet* · *.proxies* · *.setcookies* · *.setkey* · *.keys*
 ⚙️ *.setting* (panel) · *.mode* · *.react* · *.maxmb* · *.setlogo* · *.addmenu* · *.autoupdate* · *.update* · *.version* · *.restart*
 🛡️ *.antibug* · *.block* · *.unblock* · *.blocklist* · *.antispam* · *.spamlog*
@@ -586,6 +587,8 @@ const CATS = [
 ✦ *.remind 10m <note>* — ⏰ මතක් කරන්න
 ✦ *.ai tools* — smart connector (search/weather/YT)
 ✦ *.ai roast* — 🔥 බැනුමට ආපහු බැනීම (on/off)
+✦ 🏷️ v3.07 name calls — group එකේ *Dk · DK · ඩිකෙ · kaviz · කවිස් · batista · බටිස්ටා* කියලා කැඳවුවත් AI reply කරනවා (@mention අවශ්‍ය නෑ)
+✦ 🎬 v3.07 auto-fetch — "මට jailer movie එක ඔනි" වගේ natural request එකක් ආවාම AI ම *.moviedex* run කරනවා · file එක ආවම "ලබා දුන්නා" confirm එකකුත් එනවා · fast/talk modes auto (full IQ)
 ✦ AI provider තෝරන්න — *.aiprovider gemini/groq/zai/auto* · *.setting* → 10\n✦ AI chat auto-reply — *.mode* → 5/6 on·off · 11-16 modes
 ✦ Smart multi-engine fallback auto (engine එකක් down වුණත් .ai වැඩ)
 ✦ *.setkey gemini/groq/zai/together/polli <KEY>* · *.keys* · *.stt* — voice→text`],
@@ -1019,6 +1022,48 @@ async function aiMediaReply({ md, msg, jid, q, owner, chatCtx, group, send, edit
         return edit(`📄 ${fname || 'file'} — binary file එකක්. මට කියවන්න පුළුවන් PDF · photo/sticker · text files · audio · video විතරයි. zip/apk වගේ ඒවට dedicated commands තියෙනවා (*.\u0061\u0070k* බලන්න).`);
     }
 }
+// ───────── 🎬 v3.07 AI → BOT COMMAND BRIDGE ─────────
+// User ගෙ natural-language request ("මට jailer movie එක ඔනි") → AI reply එකේ [[BOTCMD: .moviedex jailer]]
+// tag එකක් (හෝ deterministic fallback) → මේ තැනින් bot command එකම dispatch වෙනවා — user ට command ගහන්න ඕනේ නෑ.
+const bridgePending = new Map();   // chat jid → { title, at } — AI-bridged .moviedex runs (delivery-confirm window 45 min)
+const NICK_RE = new RegExp('(?:^|[^\\p{L}\\p{N}_])(?:dk|ඩිකෙ|ඩ්කෙ|ඩීකේ|kaviz|කවිස්|කවිෂ්|batista|බටිස්ටා)(?=$|[^\\p{L}\\p{N}_])', 'iu');   // 🏷️ v3.07 name calls — @mention නැතුවත් නමෙන් කැඳවුවොත් AI reply
+const MOVIE_INTENT_RE = /(?:movie|film|ෆිල්ම්|චිත්‍රපට|සිනමේ|series|සීරීස්|teledrama|ටෙලිඩ්‍රාම|drama)/i;
+const MOVIE_WANT_RE = /(ඕනේ?|ඕන|\bone\b|දෙන්න|ගන්න|ගහන්න|download|හොයන්න|හොයලා|එවන්න|දැන්ම|\b(?:give|send|get|fetch)\b)/i;
+const MOVIE_STOP_RE = new RegExp('(?:චිත්‍රපටිය|චිත්‍රපටි|චිත්‍රපට|ටෙලිඩ්‍රාම|ෆිල්ම්|සීරීස්|දෙන්න|ගන්න|ගහන්න|එවන්න|බලන්න|දැන්ම|හොයන්න|හොයලා|ඕනේ|ඕන|අපිට|මට|මම|එකා|එකක්|එකත්|එකුත්|එක|ඒක|බන්|මචං|හරි|කියලා|මොකක්ද|මොකද|පුළුවන්ද|පුළුවන්|කරන්න|ඕනෙ|ඩිකෙ|ඩ්කෙ|ඩීකේ|කවිස්|කවිෂ්|බටිස්ටා)|\\b(?:movies?|films?|series|teledrama|drama|download|quality|subtitle|one|give|send|get|fetch|mata|please|plz|480p|720p|1080p|360p|2160p|144p|sub|hd|full|dk|kaviz|batista|md|bot|ai)\\b', 'gi');   // 🏷️ nicknames + filler words title එකෙන් අයින් — Latin words word-bounded (jailer ඇතුළෙ 'ai' match නවා වළක්වන්න)
+function movieTitleOf(text) {
+    const t = String(text || '').toLowerCase().replace(MOVIE_STOP_RE, ' ').replace(/[^\p{L}\p{N}\p{M}\s]/gu, ' ').replace(/\s+/g, ' ').trim();   // \p{M} — sinhala virama/vowel signs තියාගන්න (කරන්න split වෙන bug fix)
+    if (t.length < 2 || t.length > 60 || t.split(' ').length > 6) return '';
+    const toks = t.split(' ').filter((w) => !/^[\u0D80-\u0DFF]{1,2}$/.test(w));   // sinhala orphan fragments (ක්/ත් from එකක්/එකත්) drop — latin 1-chars (fast x) keep
+    return toks.length && toks.join(' ').length >= 2 ? toks.join(' ') : '';
+}
+async function aiDispatch(cmdText, { send, jid, msg }) {
+    const t = String(cmdText || '').trim();
+    if (!t.startsWith('.')) return;
+    log(`🎬 AI bridge → dispatch: ${cut(t, 80)}`);
+    if (/^\.moviedex\b/i.test(t)) {
+        bridgePending.set(jid, { title: cut(t.replace(/^\.moviedex\s*/i, ''), 60), at: Date.now() });
+        if (bridgePending.size > 100) bridgePending.delete(bridgePending.keys().next().value);
+    }
+    await new Promise((r) => setTimeout(r, 1200));   // AI text එක first — natural order
+    const fake = {
+        key: { remoteJid: jid, fromMe: true, id: 'AIBRIDGE-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(Math.random() * 1e5), participant: ME.pn },
+        message: { conversation: t },
+        messageTimestamp: Math.floor(Date.now() / 1000),
+        pushName: 'AI bridge',
+    };
+    try { await onMessages({ messages: [fake], type: 'notify' }, send, async () => { }); }
+    catch (e) { log('🎬 AI bridge dispatch fail: ' + e.message); }
+}
+moviedex._onDelivered = (jid, info) => {   // 🎬 file landed → AI-style confirm (AI-bridged chats only)
+    try {
+        const p = bridgePending.get(jid);
+        if (!p || Date.now() - p.at > 45 * 60e3) return;
+        bridgePending.delete(jid);
+        const nm = String(info?.name || p.title || 'file').replace(/\.[^.]+$/, '');
+        send(jid, { text: `🤖 🎬 *${cut(nm, 80)}* — ඔබට ලබා දුන්නා ✅\n> file එක play වෙන්නේ නැත්නම් හෝ වෙන quality එකක් ඕනේ නම් කියන්න — මම බලන්නම් 😎` }).catch(() => { });
+        log('🎬 AI delivery confirm → ' + jid.slice(0, 24));
+    } catch { }
+};
 function maybeAiReply({ msg, jid, text, owner, send }) {
     try {
         if (antibug.lockedDown()) return;                     // 🌩️ v2.55: bug storm → AI silent 5 min (echo/amplifier guard)
@@ -1035,12 +1080,13 @@ function maybeAiReply({ msg, jid, text, owner, send }) {
             const ci = ow?.extendedTextMessage?.contextInfo || ow?.imageMessage?.contextInfo || ow?.videoMessage?.contextInfo || ow?.documentMessage?.contextInfo || ow?.audioMessage?.contextInfo || ow?.stickerMessage?.contextInfo;
             const mentioned = (ci?.mentionedJid || []).some((j) => bareJid(j) === ME.pn || bareJid(j) === ME.lid);
             const repliedToMe = ci?.participant && (bareJid(ci.participant) === ME.pn || bareJid(ci.participant) === ME.lid);
-            if (!mentioned && !repliedToMe) return;
+            // 🏷️ v3.07 NAME CALLS — "Dk මොකද වෙන්නේ" / "kaviz බන්…" / "බටිස්ටා…" — නමෙන් කැඳවුවත් reply (@mention අවශ්‍ය නෑ)
+            if (!mentioned && !repliedToMe && !(text && NICK_RE.test(text))) return;
         }
         const selfChat = jid === ME.pn;
         if (!guard.aiAllowed(jid, owner, selfChat)) return;
         const k = ai.getKeys();
-        if (!k.gemini && !k.groq && !k.zai) return;   // key නෑනම් silent — random texts වලට NO_KEY spam නෑ
+        if (!k.gemini && !k.groq && !k.zai && !k.polli && !pollinations.hasKey()) return;   // 🌸 v3.07: baked polli key එකත් count — stored keys dead වුණත් auto-chat silent නෑ (roast bug fix)
         const now = Date.now(), last = aiLast.get(jid) || 0;
         if (now - last < 4000) return;
         aiLast.set(jid, now); if (aiLast.size > 200) aiLast.delete(aiLast.keys().next().value);
@@ -1067,13 +1113,18 @@ ${gtail.join('\n')}`);
                     return;
                 }
                 const r = await ai.ask(jid, text, { owner, context: chatCtx, group: isGroup });   // 👑 v2.94 owner + 👥 v2.95 chat ctx · 🐛 v2.96.2 FIX: `group` කියන variable මෙතන නෑ (isGroup) — ReferenceError → catch{} → TEXT auto-replies හැම එකක්ම SILENT (sticker/media path විතරයි උත්තර දුන්නේ!)
-                const out = (typeof r === 'string' ? r : r?.text || '').trim();
+                let out = (typeof r === 'string' ? r : r?.text || '').trim();
+                // 🎬 v3.07 bridge — [[BOTCMD]] tag (model-driven) හෝ movie-intent fallback (weak-model safety net)
+                let bcmd = ai.parseBotCmd(out);
+                if (bcmd) out = ai.stripBotCmd(out);
+                else if (MOVIE_INTENT_RE.test(text) && MOVIE_WANT_RE.test(text)) { const mt = movieTitleOf(text); if (mt) bcmd = '.moviedex ' + mt; }
                 const imgs = r && Array.isArray(r.images) ? r.images : [];   // 🖼 v2.53 FIX: auto-chat replies වලටත් photo යනවා (කලින් images drop — අනිත් අයගෙ chat වල photo නොවැඩ කරන හේතුව)
                 if (imgs.length) {
                     await send(jid, { image: imgs[0], caption: out || '🖼 හදලා දුන්නා!' }, { quoted: msg });
                     for (let i = 1; i < Math.min(imgs.length, 3); i++) await send(jid, { image: imgs[i] }, { quoted: msg });
                 } else if (out) { const ps = ai.splitLong(out); await send(jid, { text: ps[0] }, { quoted: msg }); for (let i2 = 1; i2 < ps.length; i2++) await send(jid, { text: ps[i2] }, { quoted: msg }); }   // v2.74: සම්පූර්ණ උත්තරේම යනවා (කලින් [0] විතරයි — deep answers cut වෙනවා) · v2.54: reply-bar
-                log(`🤖 AI chat → ${jid.slice(0, 24)}`);
+                if (bcmd) await aiDispatch(bcmd, { send, jid, msg });   // 🎬 v3.07 auto-fetch
+                log(`🤖 AI chat → ${jid.slice(0, 24)}${bcmd ? ' 🎬bridge' : ''}`);
             } catch (e) { log(`🤖❌ AI chat fail: ${String(e?.message || e).slice(0, 160)}`); }   // 🐛 v2.96.2: AI fail = කවදාවත් blind නෑ — console එකේ පේනවා (v2.89 never-silent)
         }).catch((e) => { log(`🤖❌ AI job fail: ${String(e?.message || e).slice(0, 160)}`); });
     } catch (e) { log(`🤖❌ AI gate fail: ${String(e?.message || e).slice(0, 160)}`); }
@@ -1388,7 +1439,12 @@ on/off: *.ai roast on* / *.ai roast off*` }, { quoted: msg });
     if (!question) return send(jid, { text: '🤖 *.ai <ප්‍රශ්නය>*\nඋදා: .ai GTA SA වල cheats මොනවද?' }, { quoted: msg });
     const status = await send(jid, { text: (ai.needsWeb && ai.needsWeb(question)) ? '🔎 අන්තර්ජාලයෙන් ඇත්ත හොයලා බලනවා... 🧠 (live web)' : '🤖 හිතනවා...' }, { quoted: msg });
     try {
-        const { text, model, images } = await ai.ask(jid, question, { owner: isFromOwner(msg.key), context: gctx || undefined, fast: false });   // 👑 v2.94 owner · 👥 v2.96 group ctx (.ai = full quality — fast නෑ)
+        const { text: aiText, model, images } = await ai.ask(jid, question, { owner: isFromOwner(msg.key), context: gctx || undefined, fast: false });   // 👑 v2.94 owner · 👥 v2.96 group ctx (.ai = full quality — fast නෑ)
+        // 🎬 v3.07 bridge — [[BOTCMD]] tag හෝ movie-intent fallback → text එකෙන් strip කරලා dispatch
+        let text = aiText;
+        let bcmd = ai.parseBotCmd(text);
+        if (bcmd) text = ai.stripBotCmd(text);
+        else { const uq = question.replace(/\n+"""[\s\S]*$/, ''); if (MOVIE_INTENT_RE.test(uq) && MOVIE_WANT_RE.test(uq)) { const mt = movieTitleOf(uq); if (mt) bcmd = '.moviedex ' + mt; } }
         if (images?.length) {   // 🖼 AI tool image (generate_image) — photo + reply text එකම caption
             try { await send(jid, { delete: status.key }); } catch { }
             await send(jid, { image: images[0], caption: text + `\n\n${foot('ᴀɪ')}` }, { quoted: msg });
@@ -1398,7 +1454,8 @@ on/off: *.ai roast on* / *.ai roast off*` }, { quoted: msg });
             await send(jid, { text: parts[0] + (parts.length === 1 ? `\n\n${foot('ᴀɪ')}` : ''), edit: status.key });
             for (let i2 = 1; i2 < parts.length; i2++) await send(jid, { text: parts[i2] + (i2 === parts.length - 1 ? `\n\n${foot('ᴀɪ')}` : '') });
         }
-        log(`🤖 ${model}: ${question.slice(0, 60)} → ${String(text).replace(/\s+/g, ' ').slice(0, 80)}`);
+        if (bcmd) await aiDispatch(bcmd, { send, jid, msg });   // 🎬 v3.07 auto-fetch
+        log(`🤖 ${model}: ${question.slice(0, 60)} → ${String(text).replace(/\s+/g, ' ').slice(0, 80)}${bcmd ? ' 🎬bridge' : ''}`);
     } catch (e) {
         if (e.noKey) return send(jid, { text: '⚠️ AI key එකක් තවම දාලා නෑ.\n\n' + KEY_HELP, edit: status.key });
         reactTo(msg.key, '❌');

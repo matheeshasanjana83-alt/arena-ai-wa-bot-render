@@ -1,5 +1,5 @@
 # =============================================================
-#  KAVIZ MD V1 (Arena AI WA Bot) — Hugging Face Space (free)
+#  ＢＡＴＩＳＴＡ ＭＤ (Arena AI WA Bot) — Hugging Face Space (free)
 #  SDK: docker · app_port: 7860  (pairsite එක PORT env එකෙන් 7860 ට listen කරනවා)
 # =============================================================
 FROM node:20-slim

@@ -1423,6 +1423,7 @@ async function deliverStream(send, jid, msg, { st, qrow, fname, capTitle, capMet
                 }, { quoted: msg });
             } finally { alive = false; }
             console.log(`[moviedex] ✅ sent ${f.name} in ${Math.round((Date.now() - t0) / 1000)}s`);
+            try { module.exports._onDelivered?.(jid, { name: f.name, h: row.label }); } catch { }   // 🎬 v3.07 AI-bridge delivery confirm hook
         }
         try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { }
         if (!linkMode) { try { await send(jid, { delete: status.key }); } catch { } react?.('✅'); }
@@ -1783,9 +1784,9 @@ async function handle(c, ctx) {
         const s2 = sessions.get(jid);
         if (s2) setUi(s2, st, 'list');
     } catch (e) {
-        edit(`❌ ${cut(String(e.message || ''), 170)}\n> ටිකකින් ආයෙත් try`);
+        edit(`❌ ${cut(String(e.message || ''), 170)}\n> ටිකකින් ආයෙත් try\n> MovieBox එක block/dead නම්: *.cinesubz ${cut(arg, 30)}* · *.cineru ${cut(arg, 30)}* — සිංහල sub source දෙක`);   // 🍿 v3.07 fallback hint
     }
     return true;
 }
 
-module.exports = { handle, bridgeReply, hasSession, setUi, mbSearch, mbDetails, mbSeasons, mbPlay, dashFrom, parseMpd, dashDownload, chunkCount, expandTpl, streamQualities, mergedQualities, downloadDash, transcode360, tvRows, listText, cardText, seriesText, sendSeriesCard, seasonOptText, epFileName, epCaption, packStat, mbDirectRows, mbDirectUrl, mbPositionSize, mbSizePlausible, MB_POS_SIZE, combinedRows, directDownload, mbRegisterAccount, mbCaptions, parseCaptions, subLabel, subFileName, vttToSrt, deliverSub, __deliver: deliverStream, _sessions: sessions, _testSession: (jid, s) => sessions.set(jid, s), mbHeaders, mbLogin, mbIdentity, MB_HOSTS, mbApi, mbDispatchers, mbPosQuery, mbPosQueryOld, mbPosRows, mbClientBuild, _mbState: () => ({ proxy: mbProxy, directBadUntil: mbDirectBadUntil, style: mbStyle, userToken: mbUserToken ? 'set' : '' }), _mbReset: () => { mbProxy = ''; mbDirectBadUntil = 0; mbToken = null; }, _mbTestPool: (p) => { _pp = p; }, _mbProxyOf: (agent) => { for (const [u, a] of mbAgents) if (a === agent) return u; return null; } };
+module.exports = { handle, bridgeReply, hasSession, setUi, mbSearch, mbDetails, mbSeasons, mbPlay, dashFrom, parseMpd, dashDownload, chunkCount, expandTpl, streamQualities, mergedQualities, downloadDash, transcode360, tvRows, listText, cardText, seriesText, sendSeriesCard, seasonOptText, epFileName, epCaption, packStat, mbDirectRows, mbDirectUrl, mbPositionSize, mbSizePlausible, MB_POS_SIZE, combinedRows, directDownload, mbRegisterAccount, mbCaptions, parseCaptions, subLabel, subFileName, vttToSrt, deliverSub, __deliver: deliverStream, _onDelivered: null, _sessions: sessions, _testSession: (jid, s) => sessions.set(jid, s), mbHeaders, mbLogin, mbIdentity, MB_HOSTS, mbApi, mbDispatchers, mbPosQuery, mbPosQueryOld, mbPosRows, mbClientBuild, _mbState: () => ({ proxy: mbProxy, directBadUntil: mbDirectBadUntil, style: mbStyle, userToken: mbUserToken ? 'set' : '' }), _mbReset: () => { mbProxy = ''; mbDirectBadUntil = 0; mbToken = null; }, _mbTestPool: (p) => { _pp = p; }, _mbProxyOf: (agent) => { for (const [u, a] of mbAgents) if (a === agent) return u; return null; } };
