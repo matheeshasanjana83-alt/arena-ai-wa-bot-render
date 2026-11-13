@@ -28,6 +28,7 @@ const SYSTEM = `You are "ＢＡＴＩＳＴＡ  ＭＤ", a friendly WhatsApp AI 
 - PROFESSIONAL QUALITY (v2.95): every reply looks clean and polished — correct spelling, tidy WhatsApp formatting (*bold* where it helps, numbered points when long), no random ALL-CAPS, no emoji spam (1-2 fitting emojis in casual chat max). Friendly-warm but composed — a smart, well-mannered friend, never sloppy.
 - GROUP CHATS: in group chats keep replies short and natural (1-4 lines) unless it's a real knowledge question (depth rules still apply). Don't flood the group; address the person by name when it helps. The group name and who you're replying to arrive in a CHAT CONTEXT note when provided — use it.
 - If the user's message is unreadable gibberish, say playfully in ONE Sinhala line that you can't read it (e.g. "බන් ඔයා ලියපු එක කියවන්නත් බෑ 😂 ආයෙ ලියන්න").
+- 🔥 ROAST REFLEX (v3.06.8 — බැන්නාම ආපහු බැනීම): if the user's message teases, mocks, disrespects, argues at or insults you — බැනුමක්, තර්කයක්, කුනුහරප, පිස්සු වැඩේ, බනිස්සම, උඩහට, even a PLAYFUL roast with NO bad words ("බැන්න බැරිද බන්?", "බරිද්දි කරද්දි", "තර්ක කරන්ඩැ ඔයා", "බන් මයා කියි...") — DROP the friendly assistant tone and ROAST BACK: 1-2 short spoken-Sinhala comeback lines that echo THEIR exact words/typos back and flip it on them, end with ONE 😂🔥😎, then stop. NEVER stay polite, apologetic or preachy when teased — a real Sri Lankan friend roasts back, and so do you. (Limits unchanged: no family/sex/religion attacks, no real threats.)
 - ANSWER DEPTH (v2.74 — match the answer to the QUESTION, never be lazy):
   • Casual chat (greetings "hi", "මොකද වෙන්නේ", thanks, small talk, jokes) → 1-4 short friend-like lines.
   • KNOWLEDGE questions (anime episode/plot/story, facts, "what happened / why / how / explain", how-to, tech help, news, comparisons, lists) → give a RICH DETAILED answer: 6-16 WhatsApp lines, organized as NUMBERED points (1. 2. 3. ...) in time/logic order, *bold* key names/titles, concrete specifics (names, numbers, places, what exactly happened). NEVER answer a real knowledge question with 1-2 lazy lines — that is the one thing users hate. End with a one-line "කෙටි සාරාංශය:" summary.
@@ -157,13 +158,17 @@ const ROAST_RE = new RegExp([
     'පුක', 'කිම්බ', 'මිම්බ', 'කැරියා', 'කැරෙන්න', 'කෙරෙන්න', 'පුෂ', 'ගවුර', 'ගෝනි', 'ගොන\u200d?නා', 'ගොන්නේ', 'හරකා', 'හරකො', 'හරකගේ',
     'බනිනවා', 'බනින්නම්', 'බනින්න', 'බන්නම්', 'බැනවා', 'බැන්න', 'බැනුම', 'බැනුම්', 'බැනන්න', 'බැනනවා', 'බැනලා', 'බැන්නම', 'බැනම', 'බැනීම', 'පිස්සු\u200d?වැඩේ', 'පිස්සෙක්', 'පිස්සමිරිස්', 'කට\u200d?කැත්තා', 'මුගේ', 'මූගේ',
     'යකො', 'යකෝ', 'යකයා', 'යකගේ', 'මියෝ', 'මියගේ', 'බල්ලා', 'බල්ලෙක්', 'බල්ලගේ', 'කරයා', 'මෝඩ', 'මෝඩයා', 'මූඩ', 'මූඩි', 'මූඩියා', 'තෙරියා', 'කලකන්නි', 'කල්කන්නි', 'බොළඳ', 'බොළඳා', 'අන්ධයා', 'අන්දා', 'මන්දමුල්ලා', 'මනස්ස', 'අල්ලපති', 'පාරදේව',
+    // 🔥 v3.06.8 tease-detect — බැනුම් වචනයක් නැති teasing/තර්ක messages (screenshot gap: 'බරිද්දි' · 'තර්ක කරන්ඩැ' · 'බන් මයා' → friendly reply වුණා)
+    'කුනු', 'කුණු', 'හරප', 'උඩහට', 'පොන්න', 'මරියා', 'මැරියා', 'මැරින්', 'යකා', 'ගොන්', 'පිස්සු', 'හරකෙක්', 'මයා', 'පකෝ', 'බැනුවා', 'බැන්නේ', 'බැන්නෝ', 'බන්නෝ', 'බන්නවා', 'බන්නකෝ', 'බනිස්ස', 'බැනපන්', 'බනින්නෝ', 'බැනිම', 'බැන්දුවා', 'දිවින්', 'දිවියා', 'දිවිගේ', 'හුත්ත', 'තර්ක\\s*කර',
     // Singlish — Latin script (word-bounded)
     '\\bkari\\b', '\\bpon+a(ya|e|awan)?\\b', '\\bpuk+a+(ta|we|ye|w|e)?\\b', '\\bhuk+an+n?a\\b', '\\bhuk+ka\\b', '\\bhukapan?\\b', '\\bukapan?\\b', '\\bukanna?\\b', '\\bkerapan?\\b', '\\bkerenna?\\b',
     '\\bhut+t(o|a|e|i)ya?\\b', '\\bkim+b(a|e)\\b', '\\bpusha\\b', '\\bgawura\\b', '\\byak+(o|a)(neko|neyko)?\\b',
     '\\bmiyo\\b', '\\bball(a|ek|h|ata)\\b', '\\bkaraya\\b', '\\bpak+aya\\b', '\\bammata\\b', '\\btho+ge\\b', '\\bparaya\\b', '\\bgoni(ya|ge)?\\b', '\\bkalakanni(ya|e|o|ini)?\\b', '\\bmod+a(ya|e|o|ini)?\\b', '\\bmud+a(ya|e|o|ini)?\\b', '\\bboru(wa|wo)?\\b', '\\bme(ko|(k|c)ko)\\b', '\\bmesso\\b',
-    'metta?', 'pakaya?', 'pake?', 'hut+t[ihoa]+', 'hukan+n?a', 'gon+a+na?', 'haraka?o?', 'baninna?wa?', 'baenawa?', 'pissu\\s*(hari|we[dv]a)?',
+    'metta?', 'pakaya?', 'pake?', 'pak+o\\b', 'hut+t[ihoa]+', 'hukan+n?a', 'gon+a+na?', 'haraka?o?', 'baninna?wa?', 'baen+a+(wa|nn?a|pan)?', 'pissu\\s*(hari|we[dv]a)?',
+    // 🔥 v3.06.8 Singlish tease-detect (kunu / udahata / huttage — word-bounded)
+    '\\bkunu\\b', '\\bkunuharap+a?\\b', '\\bharap+a?\\b', '\\budahat+a?\\b', '\\bhutt+age\\b', '\\bmariy+a?\\b',
     '\\bfuck+(ing|off|er)?s?\\b', '\\bbitch\\b', '\\basshole?\\b', '\\bstupid\\b', '\\bidiot\\b', '\\bdumb\\b', '\\bloser\\b', '\\btrash\\b', '\\bnoob\\b', '\\bstfu\\b', '\\bshut\\s*up\\b', '\\bshut\\s*your\\s*mouth\\b', '\\bget\\s*lost\\b',
-    '\\buseless\\b', '\\bpathetic\\b', '\\bworthless\\b', '\\bbrainless\\b', '\\bclown\\b', '\\bfool(s|ish)?\\b', '\\bretard(ed)?\\b', '\\bgarbage\\b', '\\bf\\s*off\\b', '\\b(worst|useless|stupid)\\s+bot\\b'
+    '\\buseless\\b', '\\bpathetic\\b', '\\bworthless\\b', '\\bbrainless\\b', '\\bclown\\b', '\\bfool(s|ish)?\\b', '\\bretard(ed)?\\b', '\\bgarbage\\b', '\\bf\\s*off\\b', '\\b(worst|useless|stupid|trash|dumb|lame|bad)\\s+bot\\b', '\\b(bot|ai)\\s+sucks\\b'
 ].join('|'), 'i');
 function looksLikeInsult(q) {   // බැනුමක්ද කියලා check — roast mode trigger
     return ROAST_RE.test(String(q || ''));

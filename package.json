@@ -1,6 +1,6 @@
 {
   "name": "batista-md",
-  "version": "3.06.7",
+  "version": "3.06.8",
   "description": "ＢＡＴＩＳＴＡ  ＭＤ — private WhatsApp bot (download, moviedex movies/series, youtube, social, AI, tools)",
   "main": "index.js",
   "scripts": {

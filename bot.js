@@ -1353,7 +1353,8 @@ on/off: *.ai tools on* / *.ai tools off*` }, { quoted: msg });
 බැනපු එකාට ආපහු බැනීම — සිංහල/සිංග්ලිෂ් බැනුමකට (මෙට්ට · කින්ටි · යකො · fuck · kari/ponnaya · hukanna · pukata...) AI එක savage comeback එකක් දෙනවා 😂😎
 ✦ v3.06.7 trained: Groq gpt-oss-120b first (කලින් llama සිංහල කැඩුවා) · refuse/English/garble → ඊළඟ model → Roast bank (66 canned savage lines) — silent වෙන්නෙ නෑ
 ✦ 🔥 NEW streak escalation — එකම chat එකේ බැනුම් වැඩි වෙනකොට roast එක HARD MODE එකට යනවා (2වන බැනුම → සැරෙන්, 3+ → MAX savage)
-✦ insult detection 3x පුළුල් — සිංහල බැනුම් + Singlish variants (kalakanni · moda · hukapan · ukanna · kerenna · paraya · goni...) + English (useless · clown · pathetic...)
+✦ v3.06.8 tease-detect — බැනුම් විතරක් නෙමෙයි, teasing වලටත් බනිනවා: තර්ක කරනවා · කුනුහරප · බනිස්සම · උඩහට · බරිද්දි-style — වචනයක් අල්ලන්නෙ නැත්නම් වුණත් AI එකේම meaning-sense එකෙන් roast කරනවා
+✦ insult detection තවත් පුළුල් — සිංහල බැනුම් + Singlish variants (kalakanni · moda · hukapan · ukanna · kerenna · paraya · goni · kunu · udahata...) + English (useless · clown · pathetic...)
 ✦ roast replies — 1-2 පේළි පමණයි, photo requests වලට බලපෑමක් නෑ
 on/off: *.ai roast on* / *.ai roast off*` }, { quoted: msg });
         }
