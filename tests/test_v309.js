@@ -73,13 +73,14 @@ const sites = (BOT.match(/const bm = menuMedia\(\);/g) || []).length;
 t(`4 send sites route through menuMedia() (menu/setting/alive/mode) — found ${sites}`, sites === 4);
 t('old banner.jpg boot-clean + helper before first send site', BOT.indexOf('rmSync') < BOT.indexOf('menuCaption(msg.pushName)'));
 
-// ── (4) manifest v3.06.4 ──
-t('manifest version 3.06.4', man.version === '3.06.4');
-t('pkg version 3.06.4', pkg.version === '3.06.4');
+// ── (4) manifest v3.06.4 photo-deck pins moved to v3.06.5 (moviedex fix) ──
+t('manifest version 3.06.5', man.version === '3.06.5');
+t('pkg version 3.06.5', pkg.version === '3.06.5');
 t('manifest.files += media/menu/01.jpg..08.jpg', [...Array(8)].every((_, i) => man.files.includes(`media/menu/0${i + 1}.jpg`)));
 t('manifest.files += tests/test_v3010.js', man.files.includes('tests/test_v3010.js'));
+t('manifest.files += tests/test_v3011.js (v3.06.5 moviedex fix)', man.files.includes('tests/test_v3011.js'));
 t('manifest.files += tests/test_v309.js', man.files.includes('tests/test_v309.js'));
-t('manifest.notes opens with v3.06.4 photo-deck entry', typeof man.notes === 'string' && man.notes.startsWith('v3.06.4:'));
+t('manifest.notes opens with v3.06.5 moviedex-fix entry', typeof man.notes === 'string' && man.notes.startsWith('v3.06.5:'));
 t('.gitignore ignores media/menu-idx.json (rotation memory is runtime-only)', fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8').includes('media/menu-idx.json'));
 
 // ── (5) FULL REBRAND — zero KAVIZ in runtime src (v3.06.3, still holds) ──
@@ -103,18 +104,18 @@ t('features.js sticker pack default = ＢＡＴＩＳＴＡ  ＭＤ', FEAT.inclu
 t('docs rebranded (README.md, README-BOT.md)', !/kaviz/i.test(fs.readFileSync(path.join(REPO, 'README.md'), 'utf8'))
     && !/kaviz/i.test(fs.readFileSync(path.join(REPO, 'README-BOT.md'), 'utf8')));
 
-// ── (6) old suites: pins moved to 3.06.4 ──
+// ── (6) old suites: pins moved to 3.06.5 ──
 const pinned = ['test_v306.js', 'test_v289.js', 'test_v300.js', 'test_v308.js'];
 for (const f of pinned) {
     const p = path.join(REPO, 'tests', f);
     if (fs.existsSync(p)) {
         const src = fs.readFileSync(p, 'utf8');
-        t(`${f} pins 3.06.4`, src.includes('3.06.4') && !src.includes('3.06.3'));
+        t(`${f} pins 3.06.5`, src.includes('3.06.5') && !src.includes('3.06.4') && !src.includes('3.06.3'));
     }
 }
-t('no suite still pins 3.06.3 (tests dir, self + test_v3010 excluded)', fs.readdirSync(path.join(REPO, 'tests'))
-    .filter((f) => f.endsWith('.js') && f !== 'test_v309.js' && f !== 'test_v3010.js')
-    .every((f) => !fs.readFileSync(path.join(REPO, 'tests', f), 'utf8').includes("'3.06.3'")));
+t('no suite still pins 3.06.3/3.06.4 (tests dir, self + runners excluded)', fs.readdirSync(path.join(REPO, 'tests'))
+    .filter((f) => f.endsWith('.js') && f !== 'test_v309.js')
+    .every((f) => { const s = fs.readFileSync(path.join(REPO, 'tests', f), 'utf8'); return !s.includes("'3.06.3'") && !s.includes("'3.06.4'"); }));
 
 console.log(bad ? `\n⚠️ ${ok} passed, ${bad} failed` : `\n🎉 ALL ${ok} TESTS PASSED`);
 process.exit(bad ? 1 : 0);

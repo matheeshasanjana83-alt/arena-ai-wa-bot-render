@@ -1,7 +1,7 @@
 /* test_v246.js — MovieBox direct-MP4 rescue (resource-position/v2) — offline asserts + RUN_LIVE E2E */
 const fs = require('fs');
 const path = require('path');
-const REPO = '/home/z/my-project/Arena-Ai-WA-BOT';
+const REPO = path.join(__dirname, '..');   // v3.06.5: relative (was a hardcoded /home/z/… path that broke outside the original box)
 let pass = 0, fail = 0;
 const ok = (cond, name) => { if (cond) { pass++; console.log('  ✅', name); } else { fail++; console.log('  ❌', name); } };
 const rd = (f) => fs.readFileSync(path.join(REPO, f), 'utf8');
@@ -18,20 +18,22 @@ ok(vN(man.version) >= 2460, 'manifest >= 2.46.0');
 ok(man.files.includes('tests/test_v246.js') && man.files.includes('moviedex.js'), 'manifest files (test_v246 + moviedex)');
 ok(vN(man.version) > 2460 || /resource-position\/v2/.test(man.notes), 'manifest notes: resource-position (v2.46 or notes rotated)');
 
-console.log('── identity + signing ──');
-ok(mv.includes("Buffer.from('76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O', 'base64')"), 'base64 gateway HMAC key');
-ok(!mv.includes('efa891974eecd3148'), 'old hex key removed');
-ok(mv.includes('50020126'), 'version_code 50020126');
-ok(mv.includes('4.0.02.0831.03'), 'version_name 4.0.02');
-ok(mv.includes("const MB_CLIENT_BUILD = '1786863422670304777"), 'x-client-build constant');
-ok(/'User-Agent': 'okhttp\/4\.9\.3'/.test(mv), 'okhttp/4.9.3 UA in mbHeaders');
+console.log('── identity + signing (v3.06.5: TUI combo default, bot combo fallback) ──');
+ok(mv.includes("Buffer.from('76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O', 'base64')"), 'base64 gateway HMAC key (bot style)');
+ok(mv.includes('0xef, 0xa8, 0x91, 0x97, 0x4e, 0xec, 0xd3, 0x14'), 'OLD hex key as TUI byte-secret (v3.06.5: MovieBox-Tui combo)');
+ok(mv.includes('50020126'), 'version_code 50020126 (bot style)');
+ok(mv.includes('4.0.02.0831.03'), 'version_name 4.0.02 (bot style)');
+ok(mv.includes('function mbClientBuild'), 'DYNAMIC x-client-build stamp (v3.06.5 — fixed stale constant removed)');
+ok(!mv.includes("const MB_CLIENT_BUILD = '1786863422670304777"), 'stale fixed x-client-build constant REMOVED');
+ok(/Cronet\/135\.0\.7012\.3/.test(mv), 'Cronet UA (TUI style) + okhttp UA (bot style)');
+ok(/'User-Agent': mbUA \|\| 'okhttp\/4\.9\.3'/.test(mv), 'mbHeaders UA follows the active identity');
 ok(/'x-client-status': '1'/.test(mv), 'x-client-status 1');
-ok(mv.includes('application/json;charset=UTF-8'), 'charset content-type');
-ok(mv.includes("'x-play-mode': '2'") && mv.includes("'x-idle-data': '1'") && mv.includes("'x-family-mode': '0'") && mv.includes("'x-content-mode': '0'"), 'play/idle/family/content headers');
-ok(mv.includes('region:') && /region: 'NG'/.test(mv), 'identity region NG');
+ok(mv.includes('application/json;charset=UTF-8'), 'charset content-type (bot style)');
+ok(mv.includes("'x-play-mode': '2'") && mv.includes("h['x-idle-data'] = '1'") && mv.includes("h['x-family-mode'] = '0'") && mv.includes("h['x-content-mode'] = '0'"), 'play/idle/family/content headers (bot style, v3.06.5 assignment form)');
+ok(mv.includes('region:') && /region: 'NG'/.test(mv), 'identity region NG (bot style) + US (TUI style)');
 
-console.log('── token / registration ──');
-ok(mv.includes('const MB_BOOTSTRAP_TOKEN ='), 'bootstrap pool token');
+console.log('── token / registration (v3.06.5: bootstrap OUT — it 406s everything live) ──');
+ok(!mv.includes('MB_BOOTSTRAP_TOKEN'), 'bootstrap pool token REMOVED (v3.06.5)');
 ok(mv.includes('moviedexUserToken'), 'settings.json persistence key');
 ok(mv.includes('process.env.MB_USER_TOKEN'), 'env token override');
 ok(mv.includes('/wefeed-mobile-bff/user-api/get-sms-code') && mv.includes('/wefeed-mobile-bff/user-api/register'), 'registration endpoints');
@@ -42,15 +44,17 @@ ok(mv.includes('delete _vh.Authorization'), 'visitor-login anonymous');
 ok(mv.includes('mbAuthFailAt = Date.now(); mbUserToken'), 'auth-fail window + token wipe');
 ok(mv.includes('mbAuthFailAt = 0;'), 'auth-fail window reset on success');
 ok(/HTTP 441\|HTTP 401/.test(mv) && !/HTTP 441\|HTTP 401\|HTTP 406/.test(mv), '406 OUT of auth-fail regex (v2.63: 406 = region-block, not auth)');
-ok(mv.includes('function mbPickToken'), 'mbPickToken (registered → bootstrap → visitor)');
+ok(mv.includes('function mbPickToken'), 'mbPickToken (registered → visitor — v3.06.5 bootstrap leg removed)');
 
 console.log('── direct-MP4 path ──');
 ok(mv.includes('const MB_STUB_RE = /macdn') && mv.includes('9a0461bc39da389663bf3dbb17091d3f') && mv.includes('|\\/notice\\.mp4/i'), 'stub-URL detector');
-ok(mv.includes('/wefeed-mobile-bff/subject-api/resource-position/v2?subjectId=${sid}&resourceId=${rid}&failUrl=&failCode=&resourceNum=1&isVip=false'), 'resource-position/v2 call');
+ok(mv.includes('failUrl=${encodeURIComponent(stub)}&failCode=404&resourceNum=0&isVip=true'), 'resource-position/v2 TUI param shape PRIMARY (v3.06.5 — old shape returned EMPTY for visitors)');
+ok(mv.includes('failUrl=&failCode=&resourceNum=1&isVip=false'), 'old param shape kept as mid-fallback');
+ok(mv.includes('function mbPosRows'), 'mbPosRows: TUI → old → style-flip (v3.06.5)');
 ok(mv.includes('perPage=20&all=0&pagerMode=0&resolution='), 'resource list params (perPage 20 = server cap)');
 ok(mv.includes('[1080, 720, 480, 360].map'), 'per-resolution fetch');
 ok(mv.includes('it.vipInfo?.requireMemberType === 1') && mv.includes('VIP-only'), 'VIP rows skipped honestly');
-ok(mv.includes('rid: String(it.resourceId)'), 'row.direct carries resourceId');
+ok(mv.includes('rid: String(it.resourceId)') && mv.includes("stub: String(it.resourceLink || it.url || '')"), 'row.direct carries resourceId + stub link (v3.06.5)');
 ok(mv.includes('for (const r of [...directRows, ...dashRows])'), 'combinedRows: direct wins per height');
 ok(mv.includes('if (row.direct) return directDownload(row,'), 'downloadDash entry → directDownload');
 ok(mv.includes("'User-Agent': 'okhttp/4.12.0'") && mv.includes("'Accept-Encoding': 'identity'"), 'CDN fetch headers');

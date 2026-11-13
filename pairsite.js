@@ -82,7 +82,7 @@ function page(key) {
 </head>
 <body>
 <div class="wrap">
-  <h1>◈ ＫＡＶＩＺ ＭＤ Ｖ1 ◈</h1>
+  <h1>◈ ＢＡＴＩＳＴＡ  ＭＤ ◈</h1>
   <div class="sub">WhatsApp pairing site</div>
 
   <div class="card">

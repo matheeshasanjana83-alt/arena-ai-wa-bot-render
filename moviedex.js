@@ -76,17 +76,25 @@ const os = require('os');
 // CineSubz/Cineru now live in their own .cinesubz / .cineru commands (cinesite.js) — moviedex is MovieBox-ONLY.
 const { smartFetch } = require('./net');
 const { human, maxMB } = require('./downloader');
-const { foot, cut, bar } = require('./style');
+const { BRAND, foot, cut, bar } = require('./style');
 
-/** v2.28 brand footer — replaces the old tutorial hint lines (user request) */
-const MV_FOOT = '> ＫＡＶＩＺ Ｖ1 🍁';
+/** v2.28 brand footer — replaces the old tutorial hint lines (user request).
+ *  v3.06.5: single-sourced from style.js BRAND — the old full-width legacy V1 footer survived
+ *  the v3.06.3 rebrand (full-width chars dodge the ASCII brand scan; user: "හැම name එකක්ම"). */
+const MV_FOOT = `> ⚡ ${BRAND} 🍁`;
 const DIV = '━━━━━━━━━━━━━━━━━━━';   // premium card rule — consistent section divider on every BATISTA card
 const fmtSize = (mb) => !mb ? '' : human(mb * 1048576).replace(/\.0 MB$/, ' MB');   // 357.0 MB → 357 MB (cleaner premium rows)
 
 /* ───────────────── 1. signed MovieBox mobile-BFF client ───────────────── */
 
-const MB_SECRET = Buffer.from('76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O', 'base64');   // v2.46: base64 gateway key (the old hex efa89197… key + visitor identity gets stubbed streams now)
-const MB_CLIENT_BUILD = '1786863422670304777.c58dd77ad46d7d89b4605211013d392f-1786863190149921915.2f932bfba072c98c72572c2ecde2b365';
+/* v3.06.5 DUAL SECRETS + TUI-style identity — MovieBox-Tui (actively maintained, visitor-only,
+ * proven live 2026-11) signs with the OLD 30-byte hex key and runs identity 4.0.01/US + Cronet UA
+ * + a DYNAMIC x-client-build stamp (sec+ms+000+rand . md5(cert|oneroom|stamp)) — the fixed stale
+ * stamp we shipped is frozen in 2026-08. Our 4.0.02/NG + okhttp identity + base64 key is kept as
+ * a toggled fallback (mbStyle) for the registered-account era. Default = the TUI combo. */
+const MB_SECRET_TUI = Buffer.from([0xef, 0xa8, 0x91, 0x97, 0x4e, 0xec, 0xd3, 0x14, 0x8d, 0xf6, 0x3a, 0xa6, 0x11, 0x60, 0x2d, 0xef, 0xd1, 0x01, 0x25, 0x9b, 0xa5, 0x21, 0x02, 0x2c, 0x57, 0xae, 0x05, 0x66, 0xbd, 0x8e]);
+const MB_SECRET_B64 = Buffer.from('76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O', 'base64');   // v2.46 gateway key (4.0.02 era)
+const MB_CERT_SHA256 = '03d4b741632d136bc23e2de4c6adcdb7712f1980b619c183221801730bbd0410';  // TUI stock-cert stamp salt input
 /** shared notice-stub markers (matches upstream MovieBox-Tui is_deprecation_notice_url) */
 const MB_STUB_RE = /macdn\.aoneroom\.com\/other\/|9a0461bc39da389663bf3dbb17091d3f|80da52722ee7de7a4303290af6783424|1c7de0bd3393702d9191801f15f88f8d|b164fbfb4347792950bdfbfb563d39d9|\/notice\.mp4/i;
 const MB_HOSTS = ['https://api6.aoneroom.com', 'https://api5.aoneroom.com', 'https://api4.aoneroom.com',
@@ -138,43 +146,72 @@ function mbDispatchers() {
 }
 
 let mbUA = '', mbCI = '', mbIP = '', mbToken = null, mbHostIdx = 0;
+/** v3.06.5 identity style — 'tui' (default, MovieBox-Tui visitor combo, proven live) or 'bot'
+ *  (the old v2.46 4.0.02/NG registered-era combo). Toggled when the active style stops working. */
+let mbStyle = 'tui';
 const sleepMs = (ms) => new Promise(res => setTimeout(res, ms));
+const _rxHex = (n) => Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+const _pick = (a) => a[Math.floor(Math.random() * a.length)];
 
-/** v2.46 registered-app identity (4.0.02 / version_code 50020126) — the visitor-era identity
- *  (4.0.01 / 50020117-19, region US) now receives stubbed notice links on stream endpoints. */
-function mbIdentity() {
-    const ver = ['12', '13', '14'][Math.floor(Math.random() * 3)];
+/** v3.06.5 DYNAMIC x-client-build (MovieBox-Tui crypto.rs build_tag_for_cert):
+ *  stamp = sec + ms(3-digit) + '000' + rand(0..999) · hash = md5(cert_sha256 + 'oneroom' + stamp).
+ *  The old FIXED stamp was frozen in 2026-08 — a stale build tag is an easy flag. */
+function mbClientBuild(ts) {
+    const stamp = `${Math.floor(ts / 1000)}${String(ts % 1000).padStart(3, '0')}000${Math.floor(Math.random() * 1000)}`;
+    return `${stamp}.${md5hex(Buffer.concat([Buffer.from(MB_CERT_SHA256), Buffer.from('oneroom'), Buffer.from(stamp)]))}`;
+}
+
+/** 'tui' style — 4.0.01 / version_code 50020117-21 / region US / sp_code 40401 / install ps /
+ *  Cronet UA (com.community.oneroom/<vc> … Cronet/135.0.7012.3). The combo MovieBox-Tui ships
+ *  TODAY for its whole visitor-only download path (recovered signed MP4s verified in its changelog). */
+function mbIdentityTui() {
+    const ver = _pick([['9', 'PQ3A.190605.03081104'], ['10', 'QP1A.191005.007.A3'], ['11', 'RP1A.200720.011'], ['12', 'S1B.220414.015'], ['13', 'TQ2A.230405.003']]);
+    const dev = _pick([['23078RKD5C', 'Redmi'], ['2201117TY', 'Redmi'], ['2201117TG', 'Redmi'], ['22101316G', 'Redmi'], ['21121210G', 'Redmi'], ['M2012K11AG', 'Redmi'], ['M2007J20CG', 'Redmi']]);
+    const vc = _pick([50020117, 50020118, 50020119, 50020120, 50020121]);
+    const did = _rxHex(32);
+    const gaid = [8, 4, 4, 4, 12].map(_rxHex).join('-');
+    mbUA = `com.community.oneroom/${vc} (Linux; U; Android ${ver[0]}; en_US; ${dev[0]}; Build/${ver[1]}; Cronet/135.0.7012.3)`;
+    mbCI = JSON.stringify({ package_name: 'com.community.oneroom', version_name: '4.0.01.0813.03', version_code: vc, os: 'android', os_version: ver[0], install_ch: 'ps', device_id: did, install_store: 'ps', gaid, brand: dev[1], model: dev[0], system_language: 'en', net: _pick(['NETWORK_WIFI', 'NETWORK_MOBILE']), region: 'US', timezone: _pick(['Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'America/New_York', 'Europe/London']), sp_code: '40401', 'X-Play-Mode': '2' });
+}
+
+/** 'bot' style (v2.46 registered-app identity 4.0.02 / 50020126) — kept as the toggled fallback */
+function mbIdentityBot() {
+    const ver = _pick(['12', '13', '14']);
     const build = { 12: 'S1B.220414.015', 13: 'TQ2A.230405.003', 14: 'UP1A.231005.007' }[ver];
     const devs = [['SM-G991B', 'Samsung'], ['23106RN0DA', 'Redmi'], ['2201117TG', 'Redmi']];
-    const [model, brand] = devs[Math.floor(Math.random() * devs.length)];
+    const [model, brand] = _pick(devs);
     const did = crypto.randomBytes(16).toString('hex');
     const gaid = [4, 2, 2, 2, 6].map(n => crypto.randomBytes(Math.ceil(n / 2)).toString('hex').slice(0, n)).join('-');
     mbUA = 'okhttp/4.9.3';
-    mbCI = JSON.stringify({ package_name: 'com.community.oneroom', version_name: '4.0.02.0831.03', version_code: 50020126, os: 'android', os_version: ver, install_ch: 'google-play', device_id: did, install_store: 'gp', gaid, brand, model, system_language: 'en', net: 'NETWORK_WIFI', region: 'NG', timezone: 'Africa/Lagos', sp_code: '62120', 'X-Child-UID': '', 'X-Client-Build': MB_CLIENT_BUILD, 'X-Play-Mode': '2', 'X-Idle-Data': '1', 'X-Family-Mode': '0', 'X-Content-Mode': '0' });
-    mbIP = Array.from({ length: 4 }, () => 2 + Math.floor(Math.random() * 253)).join('.');
+    mbCI = JSON.stringify({ package_name: 'com.community.oneroom', version_name: '4.0.02.0831.03', version_code: 50020126, os: 'android', os_version: ver, install_ch: 'google-play', device_id: did, install_store: 'gp', gaid, brand, model, system_language: 'en', net: 'NETWORK_WIFI', region: 'NG', timezone: 'Africa/Lagos', sp_code: '62120', 'X-Child-UID': '', 'X-Client-Build': mbClientBuild(Date.now()), 'X-Play-Mode': '2', 'X-Idle-Data': '1', 'X-Family-Mode': '0', 'X-Content-Mode': '0' });
 }
+
+function mbIdentity() { if (mbStyle === 'bot') mbIdentityBot(); else mbIdentityTui(); mbIP = Array.from({ length: 4 }, () => 2 + Math.floor(Math.random() * 253)).join('.'); }
 mbIdentity();
 
 /** X-TR-Signature: ts|2|b64(hmac-md5(secret, canonical)) — canonical = METHOD\naccept\nctype\nlen\nts\nmd5(body)\nurl
- *  v2.46: okhttp UA, charset content-type, x-client-build + play/idle/family/content headers,
- *  Authorization prefers the registered user token (mbPickToken) over the visitor JWT. */
+ *  v3.06.5: secret + UA follow the active style ('tui' → OLD hex key + Cronet UA + DYNAMIC
+ *  x-client-build per call; 'bot' → base64 key + okhttp UA). Authorization prefers the registered
+ *  user token (mbPickToken) over the visitor JWT — visitor is the default now (bootstrap 406-dead). */
 function mbHeaders(method, url, body) {
     const ts = Date.now();
     const u = new URL(url);
     const qs = [...u.searchParams.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     const canonical = u.pathname + (qs.length ? '?' + qs.map(([k, v]) => `${k}=${v}`).join('&') : '');
-    const ct = body ? 'application/json;charset=UTF-8' : '';
+    const tui = mbStyle !== 'bot';
+    const ct = body ? (tui ? 'application/json' : 'application/json;charset=UTF-8') : '';
     const canon = [method.toUpperCase(), 'application/json', ct,
         body ? String(Buffer.byteLength(body)) : '', String(ts), body ? md5hex(body) : '', canonical].join('\n');
-    const sig = crypto.createHmac('md5', MB_SECRET).update(canon).digest('base64');
+    const sig = crypto.createHmac('md5', tui ? MB_SECRET_TUI : MB_SECRET_B64).update(canon).digest('base64');
     const h = {
-        'User-Agent': 'okhttp/4.9.3', Accept: 'application/json', Connection: 'keep-alive',
+        'User-Agent': mbUA || 'okhttp/4.9.3', Accept: 'application/json', Connection: 'keep-alive',
         'x-client-token': `${ts},${md5hex(String(ts).split('').reverse().join(''))}`,
         'x-tr-signature': `${ts}|2|${sig}`,
         'x-client-info': mbCI, 'x-client-status': '1', 'x-forwarded-for': mbIP,
-        'x-client-build': MB_CLIENT_BUILD, 'x-play-mode': '2', 'x-idle-data': '1',
-        'x-family-mode': '0', 'x-content-mode': '0', 'x-child-uid': '',
+        'x-client-build': tui ? mbClientBuild(ts) : (() => { try { return JSON.parse(mbCI)['X-Client-Build'] || mbClientBuild(ts); } catch { return mbClientBuild(ts); } })(),
+        'x-play-mode': '2',
     };
+    if (!tui) { h['x-idle-data'] = '1'; h['x-family-mode'] = '0'; h['x-content-mode'] = '0'; h['x-child-uid'] = ''; }
     if (ct) h['Content-Type'] = ct;
     const tok = mbPickToken();
     if (tok) h.Authorization = 'Bearer ' + tok;
@@ -279,7 +316,7 @@ async function mbApi(p, bodyObj, tries = 8) {
     throw new Error('MovieBox API fail: ' + (last?.message || last));
 }
 
-/* data adapters (search / details / seasons / streams) */
+/* data adapters — see §2b */
 
 const mbSubs = (j) => { const out = []; for (const g of ((j.data || {}).results || [])) for (const s of (g.subjects || [])) out.push(s); return out; };
 const cleanTitle = (t) => String(t || '').replace(/\s*S\d+(\s*-\s*S\d+)?\s*$/i, '').trim();
@@ -656,8 +693,11 @@ let mbAuthFailAt = 0;   // v2.46 auth-failure window → visitor fallback while 
 const jwtExpMs = (t) => { try { const p = JSON.parse(Buffer.from(String(t).split('.')[1], 'base64').toString('utf8')); return (p.exp || 0) * 1000; } catch { return 0; } };
 const tokenUsable = (t) => !!t && jwtExpMs(t) - Date.now() > 3600e3;
 
-/** bootstrap registered token (shared pool account) — replaced by our own registration ASAP */
-const MB_BOOTSTRAP_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjkxMTAyODI4OTUyNzIzMzgzOTIsInV0cCI6MSwiZXhwIjoxNzk2MDcxNTgwLCJpYXQiOjE3ODgyOTUyODB9.l4MFha-s4DfMUOEQqPUGKZ_1NqfgI7NewaGJ0Saruik';
+/** v3.06.5 — the old shared-pool BOOTSTRAP token is REMOVED from the token chain. Live diag 2026-11-13:
+ *  every BFF call with that token answers HTTP 406 "find no content" (soft region-block poisons a
+ *  token issued behind a blocked IP — the visitor JWT born on a GOOD IP answers 200 for the same
+ *  call). Preferring it made EVERY .moviedex API call fail. Token preference now: registered user
+ *  JWT (if a valid one exists) → visitor JWT (fresh visitor-login). */
 
 let mbRegRunning = false;
 function scheduleMbRegister(delayMs = 0) {
@@ -755,17 +795,53 @@ async function mbRegisterAccount() {
     } finally { mbRegRunning = false; }
 }
 
-/** best token: registered JWT → bootstrap pool → visitor */
+/** best token: registered JWT (if usable) → visitor JWT — v3.06.5 dropped the 406-dead bootstrap pool token */
 function mbPickToken() {
     if (tokenUsable(mbUserToken) && Date.now() - mbAuthFailAt > 120e3) return mbUserToken;
-    if (tokenUsable(MB_BOOTSTRAP_TOKEN) && Date.now() - mbAuthFailAt > 120e3) return MB_BOOTSTRAP_TOKEN;
-    return mbToken;   // visitor (metadata keeps working)
+    return mbToken;   // visitor (search/menus/position all work with the TUI params — verified 2026-11-13)
 }
 
-/** resource-position/v2 → REAL signed MP4 (not the poisoned play-info stub) */
-async function mbDirectUrl(sid, se, ep, rid) {
-    const j = await mbApi(`/wefeed-mobile-bff/subject-api/resource-position/v2?subjectId=${sid}&resourceId=${rid}&failUrl=&failCode=&resourceNum=1&isVip=false`, undefined, 3);
-    const link = String((((j.data || {}).list) || [])[0]?.resourceLink || '');
+/** v3.06.5 — resource-position/v2 → REAL signed MP4 (not the poisoned play-info stub).
+ *  PARAMS ARE EVERYTHING (live-verified 2026-11-13): the old `failUrl=&failCode=&resourceNum=1&
+ *  isVip=false` shape answers an EMPTY list for a visitor JWT, while the MovieBox-Tui shape
+ *  `failUrl=<stub-or-empty>&failCode=404&resourceNum=0&isVip=true` recovers the signed MP4
+ *  (its whole visitor-only download path rides these params — changelog: "Recovered playable
+ *  signed MP4 streams via /resource-position/v2"). TUI params first, old shape kept as fallback,
+ *  and a still-empty result flips the identity style once before giving up. */
+function mbPosQuery(sid, rid, failUrl) {
+    const stub = String(failUrl || '');
+    return `/wefeed-mobile-bff/subject-api/resource-position/v2?subjectId=${sid}&resourceId=${rid}` +
+        `&failUrl=${encodeURIComponent(stub)}&failCode=404&resourceNum=0&isVip=true`;
+}
+function mbPosQueryOld(sid, rid) {
+    return `/wefeed-mobile-bff/subject-api/resource-position/v2?subjectId=${sid}&resourceId=${rid}&failUrl=&failCode=&resourceNum=1&isVip=false`;
+}
+/** position/v2 rows under the CURRENT style: TUI shape → old shape → (style flipped? TUI again) */
+async function mbPosRows(sid, rid, failUrl, tries = 3) {
+    let flipTried = false;
+    for (let round = 0; round < 3; round++) {
+        if (round === 1) {   // old param shape as a mid fallback
+            const jOld = await mbApi(mbPosQueryOld(sid, rid), undefined, tries).catch(() => null);
+            const rowsOld = ((jOld?.data || {}).list) || [];
+            if (rowsOld.length) return rowsOld;
+        }
+        const j = await mbApi(mbPosQuery(sid, rid, failUrl), undefined, tries).catch(() => null);
+        const rows = ((j?.data || {}).list) || [];
+        if (rows.length) return rows;
+        if (!flipTried) {   // one identity-style flip (tui ↔ bot) with a fresh device, then retry
+            flipTried = true;
+            mbStyle = mbStyle === 'tui' ? 'bot' : 'tui';
+            mbIdentity(); mbToken = null; mbAuthFailAt = 0;
+            continue;
+        }
+        break;
+    }
+    return [];
+}
+
+async function mbDirectUrl(sid, se, ep, rid, failUrl) {
+    const rows = await mbPosRows(sid, rid, failUrl, 3);
+    const link = String(rows[0]?.resourceLink || rows[0]?.url || '');
     if (!link || MB_STUB_RE.test(link)) throw new Error('MovieBox මේ item එක VIP-only වෙලා — free copy එකක් නෑ');
     return link;
 }
@@ -801,11 +877,11 @@ async function mbResourceItems(sid, se, ep) {
  *  (E122 720p → 94475173 = 94.5MB). Small rid→bytes cache: menu probe + send-time re-resolve of
  *  the SAME episode hit it, cutting the double fetch. */
 const MB_POS_SIZE = new Map();   // rid → { bytes, at }
-async function mbPositionSize(sid, rid, tries = 2) {
+async function mbPositionSize(sid, rid, tries = 2, failUrl = '') {
     const c = MB_POS_SIZE.get(String(rid));
     if (c && Date.now() - c.at < 10 * 60e3) return c.bytes;
-    const j = await mbApi(`/wefeed-mobile-bff/subject-api/resource-position/v2?subjectId=${sid}&resourceId=${rid}&failUrl=&failCode=&resourceNum=1&isVip=false`, undefined, tries);
-    const bytes = Number((((j.data || {}).list) || [])[0]?.size || 0) || 0;
+    const rows = await mbPosRows(sid, rid, failUrl, tries);
+    const bytes = Number(rows[0]?.size || 0) || 0;
     if (bytes > 0) { MB_POS_SIZE.set(String(rid), { bytes, at: Date.now() }); if (MB_POS_SIZE.size > 500) MB_POS_SIZE.clear(); }
     return bytes;
 }
@@ -819,8 +895,10 @@ function mbSizePlausible(sizeMB, durSec) {
     return true;
 }
 
-/** v2.46 — quality rows from the registered-user resource path (REAL mp4 per resolution).
- *  row.direct = { sid, se, ep, rid, codec } — the signed URL is resolved FRESH at download time.
+/** v2.46 — quality rows from the resource path (REAL mp4 per resolution).
+ *  row.direct = { sid, se, ep, rid, codec, stub } — the signed URL is resolved FRESH at download
+ *  time. v3.06.5: the row's own (often stub) link rides along — position/v2's failUrl wants the
+ *  exact failed URL the app would report (TUI passes the stub origin; empty works too).
  *  v2.62: sizes come from resource-position/v2 (exact); junk list sizes are guarded out. */
 async function mbDirectRows(sid, se, ep) {
     const items = await mbResourceItems(sid, se, ep);
@@ -833,11 +911,11 @@ async function mbDirectRows(sid, se, ep) {
     const rows = [...byRes.entries()].sort((a, b) => b[0] - a[0]).map(([r, it]) => ({
         h: r, bw: 0, label: `${r}p`, sizeMB: Math.round((Number(it.size) || 0) / 1048576),
         durSec: Number(it.duration) || 0,
-        transcode: false, direct: { sid, se: Number(se || 0), ep: Number(ep || 0), rid: String(it.resourceId), codec: String(it.codecName || '') },
+        transcode: false, direct: { sid, se: Number(se || 0), ep: Number(ep || 0), rid: String(it.resourceId), codec: String(it.codecName || ''), stub: String(it.resourceLink || it.url || '') },
     }));
     await Promise.all(rows.map(async (row) => {
         try {
-            const bytes = await mbPositionSize(sid, row.direct.rid);
+            const bytes = await mbPositionSize(sid, row.direct.rid, 2, row.direct.stub);
             if (bytes > 0) { row.sizeMB = Math.round(bytes / 1048576); return; }
         } catch { }
         if (!mbSizePlausible(row.sizeMB, row.durSec)) row.sizeMB = 0;   // junk → hide (honest menu beats a fake "~1 MB")
@@ -968,8 +1046,8 @@ async function combinedRows(sid, se, ep, streams) {
 async function directDownload(row, { tmpDir, finalName, onProgress }) {
     fs.mkdirSync(tmpDir, { recursive: true });
     const outPath = path.join(tmpDir, finalName);
-    const url = await mbDirectUrl(row.direct.sid, row.direct.se, row.direct.ep, row.direct.rid);
-    const hdrs = () => ({ 'User-Agent': 'okhttp/4.12.0', Accept: '*/*', 'Accept-Encoding': 'identity' });
+    const url = await mbDirectUrl(row.direct.sid, row.direct.se, row.direct.ep, row.direct.rid, row.direct.stub);
+    const hdrs = () => ({ 'User-Agent': mbUA || 'okhttp/4.12.0', Accept: '*/*', 'Accept-Encoding': 'identity' });   // v3.06.5: CDN UA follows the active identity (TUI passes its own UA on direct MP4s)
     const openRes = async (u, range) => {   // manual redirect follow (CDN 302s, headers preserved)
         let cur = u;
         for (let hop = 0; hop < 5; hop++) {
@@ -1043,7 +1121,7 @@ async function directDownload(row, { tmpDir, finalName, onProgress }) {
     }
 }
 
-if (!tokenUsable(mbUserToken)) scheduleMbRegister(tokenUsable(MB_BOOTSTRAP_TOKEN) ? 8000 : 2000);   // boot-time registration (background, non-blocking)
+if (!tokenUsable(mbUserToken)) scheduleMbRegister(2000);   // boot-time registration (background, non-blocking — visitor path works meanwhile)
 
 
 /* ───────────────── 3. sessions + message builders ───────────────── */
@@ -1701,4 +1779,4 @@ async function handle(c, ctx) {
     return true;
 }
 
-module.exports = { handle, bridgeReply, hasSession, setUi, mbSearch, mbDetails, mbSeasons, mbPlay, dashFrom, parseMpd, dashDownload, chunkCount, expandTpl, streamQualities, mergedQualities, downloadDash, transcode360, tvRows, listText, cardText, seriesText, sendSeriesCard, seasonOptText, epFileName, epCaption, packStat, mbDirectRows, mbDirectUrl, mbPositionSize, mbSizePlausible, MB_POS_SIZE, combinedRows, directDownload, mbRegisterAccount, mbCaptions, parseCaptions, subLabel, subFileName, vttToSrt, deliverSub, __deliver: deliverStream, _sessions: sessions, _testSession: (jid, s) => sessions.set(jid, s), mbHeaders, mbLogin, mbIdentity, MB_HOSTS, mbApi, mbDispatchers, _mbState: () => ({ proxy: mbProxy, directBadUntil: mbDirectBadUntil }), _mbReset: () => { mbProxy = ''; mbDirectBadUntil = 0; mbToken = null; }, _mbTestPool: (p) => { _pp = p; }, _mbProxyOf: (agent) => { for (const [u, a] of mbAgents) if (a === agent) return u; return null; } };
+module.exports = { handle, bridgeReply, hasSession, setUi, mbSearch, mbDetails, mbSeasons, mbPlay, dashFrom, parseMpd, dashDownload, chunkCount, expandTpl, streamQualities, mergedQualities, downloadDash, transcode360, tvRows, listText, cardText, seriesText, sendSeriesCard, seasonOptText, epFileName, epCaption, packStat, mbDirectRows, mbDirectUrl, mbPositionSize, mbSizePlausible, MB_POS_SIZE, combinedRows, directDownload, mbRegisterAccount, mbCaptions, parseCaptions, subLabel, subFileName, vttToSrt, deliverSub, __deliver: deliverStream, _sessions: sessions, _testSession: (jid, s) => sessions.set(jid, s), mbHeaders, mbLogin, mbIdentity, MB_HOSTS, mbApi, mbDispatchers, mbPosQuery, mbPosQueryOld, mbPosRows, mbClientBuild, _mbState: () => ({ proxy: mbProxy, directBadUntil: mbDirectBadUntil, style: mbStyle, userToken: mbUserToken ? 'set' : '' }), _mbReset: () => { mbProxy = ''; mbDirectBadUntil = 0; mbToken = null; }, _mbTestPool: (p) => { _pp = p; }, _mbProxyOf: (agent) => { for (const [u, a] of mbAgents) if (a === agent) return u; return null; } };
