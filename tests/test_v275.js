@@ -37,8 +37,8 @@ const fs = require('fs');
         assert.ok(!Object.keys(d).some((k) => /puppeteer|chromium/i.test(k)), 'solver stack GONE (v3.05 user directive: delete CF solver)');
     });
     ok('version pins (modernized v2.76/77 era)', () => {
-        assert.ok(['2.75.0', '2.76.0', '2.77.0', '2.78.0', '2.79.0', '2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.06.6', '3.06.6', '3.06.6'].includes(pkg.version), 'pkg: ' + pkg.version);
-        assert.ok(['2.75.0', '2.76.0', '2.77.0', '2.78.0', '2.79.0', '2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.06.6', '3.06.6', '3.06.6'].includes(manifest.version), 'manifest: ' + manifest.version);
+        assert.ok(['2.75.0', '2.76.0', '2.77.0', '2.78.0', '2.79.0', '2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.06.7', '3.06.7', '3.06.7'].includes(pkg.version), 'pkg: ' + pkg.version);
+        assert.ok(['2.75.0', '2.76.0', '2.77.0', '2.78.0', '2.79.0', '2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.06.7', '3.06.7', '3.06.7'].includes(manifest.version), 'manifest: ' + manifest.version);
         assert.ok(manifest.files.includes('animehub.js'), 'manifest has animehub.js');
         assert.ok(manifest.notes.includes('.aniworld'), 'manifest notes mention aniworld');
     });

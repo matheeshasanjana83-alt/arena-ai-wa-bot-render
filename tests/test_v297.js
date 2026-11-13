@@ -62,8 +62,8 @@ const stickerVisionFetch = (url) => {
 (async () => {
     console.log('— v3.05.0 pins + markers —');
     ok('version 3.05.0 pkg+manifest + manifest lists test_v297.js', () => {
-        assert.strictEqual(pkg.version, '3.06.6', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.06.6', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.06.7', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.06.7', 'manifest ' + manifest.version);
         assert.ok(manifest.files.includes('tests/test_v297.js'), 'manifest lists test_v297.js');
         assert.ok(manifest.notes.includes('TEXT'), 'notes headline mentions TEXT fix');
     });

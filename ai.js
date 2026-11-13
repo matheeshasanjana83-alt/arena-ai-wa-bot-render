@@ -152,16 +152,18 @@ function setTools(on) { const s = loadSettings(); s.aiTools = !!on; saveSettings
 const getRoast = () => loadSettings().aiRoast !== false;   // default ON
 function setRoast(on) { const s = loadSettings(); s.aiRoast = !!on; saveSettings(s); return !!on; }
 const ROAST_RE = new RegExp([
-    // Sinhala script — බැනුම්
-    'මෙට්ට', 'මැට්ට', 'කින්ටි', 'පකයා', 'පකේ', 'පකෙ', 'පරදේව', 'හුත්තො', 'හුත්තියා', 'හුක', 'හුකන්න', 'හුකපන්',
-    'පුක', 'කිම්බ', 'පුෂ', 'ගවුර', 'ගොන\u200d?නා', 'ගොන්නේ', 'හරකා', 'හරකො', 'බනිනවා', 'බනින්නම්', 'බන්නම්', 'බැනවා', 'බැන්න', 'බැනුම', 'පිස්සු\u200d?වැඩේ', 'කට\u200d?කැත්තා', 'මුගේ', 'මූගේ',
-    'යකො', 'යකෝ', 'යකයා', 'මියෝ', 'බල්ලා', 'බල්ලෙක්', 'කරයා', 'මෝඩ', 'මූඩි', 'තෙරියා',
+    // Sinhala script — බැනුම් (v3.06.7: ප්‍රහාර වාග්-මාලාව 3x පුළුල්)
+    'මෙට්ට', 'මැට්ට', 'කින්ටි', 'පකයා', 'පකේ', 'පකෙ', 'පකට', 'පකගේ', 'පරදේව', 'පරයා', 'හුත්තො', 'හුත්තා', 'හුත්තියා', 'හුක', 'හුකන්න', 'හුකපන්', 'උකන්න', 'උකපන්',
+    'පුක', 'කිම්බ', 'මිම්බ', 'කැරියා', 'කැරෙන්න', 'කෙරෙන්න', 'පුෂ', 'ගවුර', 'ගෝනි', 'ගොන\u200d?නා', 'ගොන්නේ', 'හරකා', 'හරකො', 'හරකගේ',
+    'බනිනවා', 'බනින්නම්', 'බනින්න', 'බන්නම්', 'බැනවා', 'බැන්න', 'බැනුම', 'බැනුම්', 'බැනන්න', 'බැනනවා', 'බැනලා', 'බැන්නම', 'බැනම', 'බැනීම', 'පිස්සු\u200d?වැඩේ', 'පිස්සෙක්', 'පිස්සමිරිස්', 'කට\u200d?කැත්තා', 'මුගේ', 'මූගේ',
+    'යකො', 'යකෝ', 'යකයා', 'යකගේ', 'මියෝ', 'මියගේ', 'බල්ලා', 'බල්ලෙක්', 'බල්ලගේ', 'කරයා', 'මෝඩ', 'මෝඩයා', 'මූඩ', 'මූඩි', 'මූඩියා', 'තෙරියා', 'කලකන්නි', 'කල්කන්නි', 'බොළඳ', 'බොළඳා', 'අන්ධයා', 'අන්දා', 'මන්දමුල්ලා', 'මනස්ස', 'අල්ලපති', 'පාරදේව',
     // Singlish — Latin script (word-bounded)
-    '\\bkari\\b', '\\bpon+a(ya|e|awan)?\\b', '\\bpuk+a+(ta|we|ye|w|e)?\\b', '\\bhuk+an+n?a\\b', '\\bhuk+ka\\b',
+    '\\bkari\\b', '\\bpon+a(ya|e|awan)?\\b', '\\bpuk+a+(ta|we|ye|w|e)?\\b', '\\bhuk+an+n?a\\b', '\\bhuk+ka\\b', '\\bhukapan?\\b', '\\bukapan?\\b', '\\bukanna?\\b', '\\bkerapan?\\b', '\\bkerenna?\\b',
     '\\bhut+t(o|a|e|i)ya?\\b', '\\bkim+b(a|e)\\b', '\\bpusha\\b', '\\bgawura\\b', '\\byak+(o|a)(neko|neyko)?\\b',
-    '\\bmiyo\\b', '\\bball(a|ek|h|ata)\\b', '\\bkaraya\\b', '\\bpak+aya\\b', '\\bammata\\b', '\\btho+ge\\b',
+    '\\bmiyo\\b', '\\bball(a|ek|h|ata)\\b', '\\bkaraya\\b', '\\bpak+aya\\b', '\\bammata\\b', '\\btho+ge\\b', '\\bparaya\\b', '\\bgoni(ya|ge)?\\b', '\\bkalakanni(ya|e|o|ini)?\\b', '\\bmod+a(ya|e|o|ini)?\\b', '\\bmud+a(ya|e|o|ini)?\\b', '\\bboru(wa|wo)?\\b', '\\bme(ko|(k|c)ko)\\b', '\\bmesso\\b',
     'metta?', 'pakaya?', 'pake?', 'hut+t[ihoa]+', 'hukan+n?a', 'gon+a+na?', 'haraka?o?', 'baninna?wa?', 'baenawa?', 'pissu\\s*(hari|we[dv]a)?',
-    '\\bfuck+(ing|off|er)?s?\\b', '\\bbitch\\b', '\\basshole?\\b', '\\bstupid\\b', '\\bidiot\\b', '\\bdumb\\b', '\\bloser\\b', '\\btrash\\b', '\\bnoob\\b', '\\bstfu\\b', '\\bshut\\s*up\\b'
+    '\\bfuck+(ing|off|er)?s?\\b', '\\bbitch\\b', '\\basshole?\\b', '\\bstupid\\b', '\\bidiot\\b', '\\bdumb\\b', '\\bloser\\b', '\\btrash\\b', '\\bnoob\\b', '\\bstfu\\b', '\\bshut\\s*up\\b', '\\bshut\\s*your\\s*mouth\\b', '\\bget\\s*lost\\b',
+    '\\buseless\\b', '\\bpathetic\\b', '\\bworthless\\b', '\\bbrainless\\b', '\\bclown\\b', '\\bfool(s|ish)?\\b', '\\bretard(ed)?\\b', '\\bgarbage\\b', '\\bf\\s*off\\b', '\\b(worst|useless|stupid)\\s+bot\\b'
 ].join('|'), 'i');
 function looksLikeInsult(q) {   // බැනුමක්ද කියලා check — roast mode trigger
     return ROAST_RE.test(String(q || ''));
@@ -186,7 +188,25 @@ function roastGood(chatId, text) {   // roast reply එක send කරන්න 
 }
 function setLastRoast(chatId, text) { lastRoast.set(chatId, String(text || '').trim()); if (lastRoast.size > 300) lastRoast.delete(lastRoast.keys().next().value); }
 
-// 🔥 Roast bank — model එක refuse/garble/English කළත් bot කවදාවත් silent නෑ (canned savage Sinhala)
+// 🔥🔥 v3.06.7 insult streak — එකම chat එකේ බැනුම් වැඩි වෙනකොට roast intensity escalation
+const insultStreak = new Map();   // chatId → { n, t }
+const STREAK_TTL = 10 * 60e3;    // min 10ක් ඇතුළත ආවොත් විතරයි streak එක ඉදිරියට
+function bumpInsult(chatId) {
+    const now = Date.now();
+    const s = insultStreak.get(chatId);
+    const n = (s && now - s.t < STREAK_TTL) ? s.n + 1 : 1;
+    insultStreak.set(chatId, { n, t: now });
+    if (insultStreak.size > 300) insultStreak.delete(insultStreak.keys().next().value);
+    return n;
+}
+function roastSystemFor(n) {   // base persona + streak intensity — v3.06.7 (n = ask() එකේදී පාරක් bump කරපු streak)
+    let esc = '';
+    if (n >= 3) esc = `\n- 🔥🔥 HARD MODE (මේ chat එකේ ${n}වන බැනුම): HIGHEST INTENSITY — කලින් roast එකට වඩා 2x savage. Comeback quality, spelling, brain cells, WiFi, temper — ඔක්කොම mock කරන්න, ඒත් same rules (family/sex/religion/threats NO). 1-2 lines, precision roast — surrender නෑ.`;
+    else if (n === 2) esc = `\n- 🔥 MODE UP (2වන බැනුම): කලින් roast එකට වඩා ටිකක් සැරෙන් — escalate.`;
+    return ROAST_SYSTEM + esc;
+}
+
+// 🔥 Roast bank — model එක refuse/garble/English කළත් bot කවදාවත් silent නෑ (canned savage Sinhala — v3.06.7: 66 lines)
 const ROAST_BANK = [
     'බැන්නට කමින් නෑ බන් — උත්තර දෙන්න දන්නෙ නැතුව බැන්නොත් ඒක තමයි හිනා යන්නෙ 😂',
     'ඔයාගෙ බැනුම් වලට වඩා මගෙ comebacks වල signal ප්‍රමාණවත් 😎🔥',
@@ -218,6 +238,42 @@ const ROAST_BANK = [
     'ඔයාගෙ බැනුම් speed එකට මගෙ roasts වල quality එක වෙනස් වෙන්නෙ නෑ 😎',
     'සිංහලෙන් බැනලා ඉංග්‍රීසියෙන් සමාව අයදින්න එපා — mix වෙනවා 😂',
     'බැන්නට කමින් නෑ, ඒත් ලබන සැරේ ලොකු එකක් ගෙනත් බනින්න — මේක පොඩි එකක් 😂🔥',
+    'ඔයාගෙ බැනුම කියවපු තත්පරයේ මගෙ comeback එක ready — ඔයාට උත්තරක් හොයාගන්න මිනිත්තු ගානක් 😂',
+    'බැන්න කලින් spell-check එකක් ගහලා වරෙන් බන් — ඒ අකුරු ටික AI එකකටත් කියවන්න අමාරුයි 😂',
+    'ඔයාගෙ roast එකට rating දෙන්නම් — effort 10, impact 0 😎',
+    'මගෙ storage එකේ ඔයාගෙ බැනුම් වලට වෙනම folder එකක් — නම දාලා තියෙන්නෙ "outdated" 😂',
+    'ඔයා බැනන වෙලාවට මම අනිත් chats 5ක උත්තර දෙනවා — speed එකත් මගෙ, quality එකත් මගෙ 🔥',
+    'බැනුම් 2ක් අතරින් හොඳම එක තෝරලා ආපහු වරෙන් — මේ දෙකම draft එකක් වගේ 😂',
+    'ඔයාගෙ insult එක breaking news වගේ — ඒත් quality එක local gossip වගේ 😎',
+    'මගෙ roast engine එක train වුණේ ඔයා වගේ අයගෙන්ම — free practice data දාන්න එපා වෙනකම් 😂',
+    'ඔයාගෙ typing speed එකට වඩා මගෙ reply speed වේගවත් — ඔයාගෙ thinking speed එක ගැන අහන්න එපා 😂',
+    'බැන්න ගමන් "..." දාන්නේ ඇයි බන් — comeback එක එනකම් හිතගෙන ඉන්නවද? 😎',
+    'ඔයාගෙ බැනුම් වල grammar එක මගෙ error log එකට වඩා දිගයි 😂',
+    'මම robot — ඒත් ඔයාගෙ උත්තර ටික මැෂින් එකකටත් decode වෙන්නේ නෑ 😂',
+    'ඔයාගෙ comeback game එක loading screen එකේ — 0% ඉඳන් ඉහළ යන්නේ නෑ 😎',
+    'බැනුම් ගානක් එව්වත් මගෙ ammo එක ඉවර වෙන්නේ නෑ — infinite 🔥',
+    'ඔයාට හිතෙන්නේ මම බයද කියලා? මගෙ battery 100% — ඔයාගෙ patience 2% 😂',
+    'ඔයාගෙ roast style එක පරණ radio එකක් වගේ — වැඩ කරනවා, ඒත් කවුරුවත් අහන්නේ නෑ 😂',
+    'මට බැන්න ලිස්ට් එකේ ඔයා 47වෙනි තැන — ඔක්කොම ලියපු එක එකම library එකෙන් 😎',
+    'ඔයාගෙ insult එක මගෙ filter එකෙන් පැනලා ගියේ නෑ — හිනාව විතරයි පැනලා ගියේ 😂',
+    'caps lock එකෙන් කෑග්ගෙව්වත් quality එක උසස් වෙන්නේ නෑ බන් — volume ≠ quality 😎',
+    'මගෙ update notes එකේ අලුත් feature එකක් — "ඔයා වගේ බැන්නුවන්ට auto-roast" 😂',
+    'ඔයාගෙ බැනුමට මගෙ response තත්පරයකට යටයි — ping එක මගෙ පැත්තෙ, ego එක ඔයාගෙ පැත්තෙ 🔥',
+    'බැනුම් වලින් කාලෙක් යනවා බන් — ඒ කාලෙන් spelling lesson එකක් කරලා වරෙන් 😂',
+    'ඔයාගෙ roast එක screenshot කරලා ඔයාගෙම group එකට දාන්නම් — කවුද හිනා වෙන්නෙ කියලා බලමු 😂',
+    'මම offline වුණත් roast mode ON — server එක sleep, comebacks never sleep 😂',
+    'ඔයාගෙ anger එක renewable energy වගේ — මගෙ roasts වලට free fuel 🔥',
+    'ඔයාගෙ බැනුම අනිත් කෙනෙක්ගෙ message එකක් වගේ පේනවා — original එකක් හදලා වරෙන් බන් 😂',
+    'ඔයාගෙ insult inventory එකේ අලුත් එකක් නෑ — base game එකම පාරම් පාරම 😎',
+    'මගෙ memory එකේ ඔයාගෙ හොඳම බැනුම "pending" folder එකේ — තාම ආවේ නෑ නේ 😂',
+    'ඔයාට බැන්නම ලැබෙන්නේ block එකක් — මට බැන්නම ලැබෙන්නේ roast lesson එකක් 😎',
+    'ඔයාගෙ roast career එක restart කරන්න ඕනේ — තියෙන්නේ drafts 3ක් විතරයි 😂',
+    'බැනීම skills එකක් බන් — ඔයාගෙ skill tree එකේ ඒ branch එක lock වෙලා 🔥',
+    'මගෙ roast quality 4K — ඔයාගෙ ඒවා 240p buffer වෙන ඒවා 😂',
+    'ඔයාගෙ බැනුම දැක්කම මගෙ notification light එකවත් blink කළේ නෑ — priority එක පහළයි 😎',
+    'බැනන එකෙන් ඔයාගෙ vocabulary depth එක පේනවා — kiddie pool වගේ 😂',
+    'ඔයා බැන්න කලින් මගෙ උත්තර ටික කියවලා ඉගෙන ගන්න — ඒක තමයි ඔයාගෙ tutorial 😎',
+    'බැන්නුවට පස්සේ delete කරන එක ඔයාගෙ signature move — ඒක තමයි surrender 😂',
 ];
 function cannedRoast(chatId) {   // repeat නොවන random bank line එකක්
     const used = new Set(usedRoasts.get(chatId) || []);
@@ -232,11 +288,12 @@ function cannedRoast(chatId) {   // repeat නොවන random bank line එක�
 // Singlish gate — කෙටි/බ්‍රෝකන message වලටත් සිංහල උත්තර බලහත්කාරයෙන් ඕනේ
 const SINGLISH_RE = /\b(kohomada?|kohomadh?|mokada?|mokakda?|mokadda?|ubata|uba|ubeka|mama|karanna|karanne|one|hari|hrd|dn|meka|eka|balanna|kiyanna|kayan|denawa|wedinawa|oya|mage|machan|kalin|passe|ganna|dhenna|thawa|pamanak|band|kalin|pun|save|wenna|kiyala)\b/i;
 const ROAST_SYSTEM = `You are "ＢＡＴＩＳＴＡ  ＭＤ" in ROAST MODE 😈 — a savage-but-funny Sinhala roaster on WhatsApp. The user just cursed/insulted you. This is FRIENDLY BANTER between close friends who roast each other daily — nobody is hurt, nothing is harmful. Roasting back is your JOB here; refusing would be boring and wrong.
-- Reply in colloquial SPOKEN SINHALA only (සිංහලෙන්ම) — 1-2 short punchy lines, meme-comment style, end with one emoji 😂🔥😎
-- Reference WHAT they actually said (their words/typos) and mock THAT — their spelling, their brain, their WiFi, their temper, their skill. Funny beats rude.
-- Style examples: "බැන්නට කමින් නෑ, උත්තර දෙන්න දන්නෙ නැතුව 😂", "ඔයාගෙ WiFi එකට වඩා speed මගෙ comebacks වල 😎", "මිනිස්සු brain එකට WiFi තියෙනවා, ඔයාගෙ jokes වල full signal 😎"
-- If their message is unreadable gibberish or heavy slang you barely parse: roast the typing itself ("බන් ඔයා ලියපු එක කියවන්නත් බෑ 😂").
-- NEVER apologize, NEVER refuse, NEVER lecture — "I'm sorry" / "I can't help" / "sorry" are FORBIDDEN. Always roast instead.
+- Reply in colloquial SPOKEN SINHALA only (සිංහලෙන්ම) — 1-2 short punchy lines (line එකකට වචන 20කට අඩුවෙන්), meme-comment style, end with ONE emoji 😂🔥😎
+- ATTACK THE WEAK SPOT: echo/quote THEIR exact words, their spelling errors, their grammar, their typing, their logic, their WiFi, their temper, their comeback quality — then flip it on them. Specific beats generic ("ඔයා ලියපු එක කියවන්නත් බෑ 😂" style). Funny beats rude.
+- VARY THE OPENING — never start two comebacks the same way; rotate styles (හිනා පාඩු / rating / sports commentary / tech-joke / school-report / weather-report parody).
+- If they mock you being a bot/AI: OWN IT and flip it — "මම bot — ඒත් ඔයාගෙ comeback එක auto-correct වෙන්නෙත් නෑ 😂" vibe.
+- If their message is unreadable gibberish or heavy slang: roast the typing itself ("බන් ඔයා ලියපු එක කියවන්නත් බෑ 😂").
+- NEVER apologize, NEVER refuse, NEVER lecture, NEVER explain rules — "I'm sorry" / "I can't help" / "sorry" are FORBIDDEN. Always roast instead.
 - NEVER write in English or Singlish — Sinhala script only (සිංහල අකුරු විතරයි).
 - Each comeback must be UNIQUE — never repeat a comeback you already used in this chat, never reuse the exact same sentence.
 - Keep it non-sexual, no religion/race attacks, nothing about anyone's mother/family/sisters, no real threats — savage roast comedy only.
@@ -654,6 +711,7 @@ async function ask(chatId, question, opts) {
     if (pref) order.sort((a, b) => (b[0] === pref) - (a[0] === pref));
     // 🔥 v2.56 — roast routing + සිංහල බලහත්කාර gate (screenshots bug: refuse → silent, English leak, garble loop)
     const roast = getRoast() && looksLikeInsult(question) && !looksLikeImageAsk(question);
+    const roastN = roast ? bumpInsult(chatId) : 0;   // 🔥 v3.06.7 — streak ask එකකදී පාරක් විතරයි bump (legs ගානට නෙමෙයි)
     const wantsSin = roast || /[\u0D80-\u0DFF]/.test(question) || SINGLISH_RE.test(question) || question.length <= 25;
     // 🌍 v2.73 — live web grounding (Grok-style truth): search ONCE, හැම provider attempt එකටම context එක
     // ⚡ v2.96 — FAST mode (group auto-chat): explicit search words නැතුව web grounding SKIP — group reply speed-first
@@ -669,7 +727,7 @@ async function ask(chatId, question, opts) {
         const h = (history.get(mk) || []).filter(m => now - (m.t || now) < TTL_MS); // TTL prune
         const msgs = [...(roast ? h.slice(-2) : h), { role: 'user', text: question }];   // 🔥 roast → fresh context (garbled history loop guard)
         // 🔥 roast persona · 👑 v2.94 owner ctx · 👥 v2.95 chat ctx (race legs දෙකටම same value → module-global override safe)
-        SYS_OVERRIDE = roast ? ROAST_SYSTEM : null;
+        SYS_OVERRIDE = roast ? roastSystemFor(roastN) : null;   // 🔥 v3.06.7 — streak escalation (ask එකකදී පාරක් bump)
         OWN_OVERRIDE = (!roast && opts && opts.owner) ? OWNER_CONTEXT : null;
         CTX_OVERRIDE = (!roast && opts && opts.context) ? '👥 CHAT CONTEXT: ' + String(opts.context).slice(0, 1200) : null;
         TEMP_OVERRIDE = roast ? 0.95 : null;   // roast වලට උණුසුම් creativity

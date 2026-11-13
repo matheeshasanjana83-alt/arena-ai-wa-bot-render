@@ -118,6 +118,14 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
     try { fs2.unlinkSync(SET); } catch { } if (backup) fs2.writeFileSync(SET, backup);
     global.fetch = realFetch;
 
+    // ───────── v3.06.7: roast upgrade — detection 3x, bank 66, streak escalation ─────────
+    t('🔥 ROAST_RE: සිංහල බැනුම් detect', ['යකෝ ඔයා මූඩද බන්', 'ඔයා කලකන්නියෙක්', 'මෝඩයා bot', 'බොළඳා උත්තර දෙන්න දන්නෙ නෑ', 'උකපන් බන්', 'බැනලා තෙහෙට්ටුද', 'පකට බැන්නොත්'].every(s => ai.looksLikeInsult(s)));
+    t('🔥 ROAST_RE: Singlish variants detect', ['kalakanni bot', 'mudaya uba', 'hukapan machan', 'kerenna yako', 'paraya ai', 'worst bot ever', 'useless piece of trash', 'goniya', 'moda ai', 'meko', 'mecko', 'messo', 'boru kiyala', 'clown'].every(s => ai.looksLikeInsult(s)));
+    t('🔥 ROAST_RE: සාමාන්‍ය message → false (moderator ආදිය trigger නෑ)', ['kohomada machan', 'AI එකෙන් ලස්සන photo එකක් හදන්න', 'sir result eka balanna puluwan da', 'මචං අද පාඩම් ටික මොකක්ද', 'hello bot', '.ping', 'moderator laga asanna'].every(s => !ai.looksLikeInsult(s)));
+    t('🔥 Roast bank: 66 lines all unique', ai.ROAST_BANK.length === 66 && new Set(ai.ROAST_BANK).size === ai.ROAST_BANK.length);
+    t('🔥 Roast bank: හැම line එකකුත් roastGood pass (refuse/English leak ZERO)', ai.ROAST_BANK.every(l => ai.roastGood('roastcheck@s.whatsapp.net', l)));
+    { const seen = []; let clean = true; for (let i = 0; i < 9; i++) { const s = ai.cannedRoast('roastcheck2@s.whatsapp.net'); if (seen.slice(-8).includes(s)) clean = false; seen.push(s); } t('🔥 cannedRoast: 9 draws — අන්තිම 8 ඇතුළත repeat නෑ', clean); }
+
     // ───────── v2.8: owner-only + anti-ban ─────────
     {
         const guard = require('../guard');

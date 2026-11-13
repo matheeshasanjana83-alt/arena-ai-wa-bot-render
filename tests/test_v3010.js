@@ -83,10 +83,10 @@ t('runtime user-*.jpg NOT in manifest.files (updater never deletes them)', !MAN.
 t('.gitignore: menu-idx.json runtime-only', fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8').includes('media/menu-idx.json'));
 
 // ── (7) pins ──
-t('pkg 3.06.5', PKG.version === '3.06.6');
-t('lock 3.06.5', LOCK.version === '3.06.6');
-t('manifest 3.06.5', MAN.version === '3.06.6');
-t('notes opens v3.06.5', typeof MAN.notes === 'string' && MAN.notes.startsWith('v3.06.6:'));
+t('pkg 3.06.5', PKG.version === '3.06.7');
+t('lock 3.06.5', LOCK.version === '3.06.7');
+t('manifest 3.06.5', MAN.version === '3.06.7');
+t('notes opens v3.06.5', typeof MAN.notes === 'string' && MAN.notes.startsWith('v3.06.7:'));
 
 // restore
 if (hadLogo) fs.writeFileSync(LOGO, hadLogo);
