@@ -162,8 +162,8 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         const bot = require('../bot'); const path = require('path');
         const LOGO = path.join(__dirname, '..', 'logo.img'); const hadLogo = fs.existsSync(LOGO) ? fs.readFileSync(LOGO) : null;
         fs.rmSync(LOGO, { force: true });
-        r = await run(mk('.alive')); const card = r.find(x => x.video);
-        t('.alive → banner video + card', !!card && card.video.length === fs.statSync(path.join(__dirname, '..', 'banner.mp4')).size && /ＢＡＴＩＳＴＡ  ＭＤ/.test(card.caption) && /v\d+\.\d+/.test(card.caption));
+        r = await run(mk('.alive')); const card = r.find(x => x.image);
+        t('.alive → deck photo + card (v3.06.4: LOGO > deck rotation)', !!card && card.image.length > 1000 && /ＢＡＴＩＳＴＡ  ＭＤ/.test(card.caption) && /v\d+\.\d+/.test(card.caption));
         t('card එක කෙටියි (පේළි 9 ට අඩුයි)', card && card.caption.split('\n').length <= 9);
         r = await run(mk('.setlogo')); t('.setlogo photo නැතුව → උදව් message', r.some(x => /reply/.test(x.text || '')) && !fs.existsSync(LOGO));
         const fake = Buffer.alloc(4000, 7); let got = null;
@@ -182,8 +182,8 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
 
     // ───────── v2.10: photo menu + categories + auto react ─────────
     {
-        r = await run(mk('.menu')); const mm = r.find(x => x.video);   // v3.06.3: banner VIDEO
-        t('.menu → video + info box + categories', !!mm && /INFO/.test(mm.caption) && /CATEGORIES/.test(mm.caption) && /💾/.test(mm.caption) && /\*1\* ┃ 📥 Download/.test(mm.caption));
+        r = await run(mk('.menu')); const mm = r.find(x => x.image);   // v3.06.4: photo DECK (video එක නෙමෙයි — photo එකක්)
+        t('.menu → deck photo + info box + categories', !!mm && mm.image.length > 1000 && /INFO/.test(mm.caption) && /CATEGORIES/.test(mm.caption) && /💾/.test(mm.caption) && /\*1\* ┃ 📥 Download/.test(mm.caption));
         const menuId = 'OUT' + n;   // fake send ids
         const qm = (t2) => { const m2 = mk(t2); m2.message = { extendedTextMessage: { text: t2, contextInfo: { stanzaId: menuId } } }; return m2; };   // quote the menu card
         r = await run(qm('1')); t('menu එකට reply කරලා 1 → Download category', r.some(x => /DOWNLOAD/.test(x.text || '')));
@@ -192,7 +192,7 @@ const mk = (text, fromMe = true, jid = ME) => ({ key: { id: 'IN' + (++n), remote
         r = await run(mk('9')); t('🔒 v2.58: bare 9 → silence', r.length === 0);
         r = await run(qm('10')); t('menu එකට reply කරලා 10 → AI category', r.some(x => /\*🤖 AI\*/.test(x.text || '')));
         r = await run(mk('13')); t('🔒 v2.58: bare 13 → silence', r.length === 0);
-        r = await run(qm('14')); t('menu එකට reply කරලා 14 → status card (video)', r.some(x => x.video && /ＢＡＴＩＳＴＡ  ＭＤ/.test(x.caption)));
+        r = await run(qm('14')); t('menu එකට reply කරලා 14 → status card (deck photo)', r.some(x => x.image && /ＢＡＴＩＳＴＡ  ＭＤ/.test(x.caption)));
         r = await run(mk('99')); t('🔒 v2.58: bare 99 → silence (error msg එකත් නෑ)', r.length === 0);
         r = await run(qm('99')); t('menu එකට reply කරලා 99 → error', r.some(x => /අතර number/.test(x.text || '')));
         const other = mk('1'); other.message = { extendedTextMessage: { text: '1', contextInfo: { stanzaId: 'SOMETHING_ELSE' } } };

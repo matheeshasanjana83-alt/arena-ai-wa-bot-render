@@ -85,8 +85,8 @@ const WATCH_JSON = { headers: { Referer: 'https://kwik.cx/' }, sources: [
     console.log('— v3.05.0 consumet-only animepahe suite —');
 
     await ok('pins: package.json + manifest.json = 3.05.0', () => {
-        assert.strictEqual(pkg.version, '3.06.3');
-        assert.strictEqual(man.version, '3.06.3');
+        assert.strictEqual(pkg.version, '3.06.4');
+        assert.strictEqual(man.version, '3.06.4');
     });
 
     await ok('NEGATIVE markers: vm sandbox · cfsolver · cf_clearance · direct-scrape machinery ALL GONE', () => {

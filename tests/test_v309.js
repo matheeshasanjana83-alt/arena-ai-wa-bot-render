@@ -1,19 +1,19 @@
 /**
- * test_v309.js — v3.06.3 🎬 VIDEO BANNER + FULL ＢＡＴＩＳＴＡ ＭＤ REBRAND
+ * test_v309.js — v3.06.3 🎬 VIDEO BANNER (RELEASED) → v3.06.4 🖼 PHOTO DECK (current reality)
  * User directive 2026-11-12: "මේ png එක වෙනුවට මන් දාපු png ටික මිනිත්තු 1 එකකට මරු වෙන්න හදන්න
  * bot ට — දැන් තියෙන එක අයින් කරලා" + "kaviz v1 එක හැම එකකම තියෙන එක ＢＡＴＩＳＴＡ ＭＤ කියලා වෙනස් කරන්න
  * හැම name එකක්ම"
+ * User directive 2026-11-13 (v3.06.4): "Video එකක් නෙමෙ බන් — .menu ගැහුවාම මන් දාපු photo වලින්
+ * එකක් වැටෙනවා, ආයෙත් ගැහුවාම ඊලග photo එක වැටෙනවා" → video banner OUT, photo DECK IN.
  *
- *  (1) banner.mp4 = the new default banner: real MP4 (ftyp magic), 60s-class file, <16MB WhatsApp
- *      video-message hard cap, >3MB (not a truncated download)
- *  (2) banner.jpg DELETED repo-wide: gone from git tree, manifest.files, and bot.js code paths
- *  (3) bot.js bannerMedia(): LOGO (.setlogo) > banner.mp4 (video+mimetype) > null — 4 send sites
- *      (menu / setting / mode / alive) all route through it; boot rmSync self-cleans stale banner.jpg
- *  (4) manifest: version 3.06.3, files += banner.mp4 + tests/test_v309.js, removed += banner.jpg
- *  (5) FULL REBRAND: ZERO /kaviz/i anywhere in runtime src — package name batista-md, style.js
- *      BRAND = ＢＡＴＩＳＴＡ ＭＤ (footer single-source), ai.js persona identity lock, updater UA,
- *      sticker EXIF defaults, pair-site, agent cards
- *  (6) old suites: version pins moved to 3.06.3
+ *  (1) banner.mp4 REMOVED repo-wide (tree + manifest.files, in removed list) — deck replaces it
+ *  (2) banner.jpg still gone everywhere (v3.06.3 cleanup holds)
+ *  (3) bot.js menuMedia(): LOGO (.setlogo) > deck photo (sequential rotation) > null — 4 send sites
+ *      (menu / setting / mode / alive); boot rmSync self-cleans BOTH stale banners
+ *  (4) manifest: version 3.06.4, files += media/menu/01-08.jpg + tests/test_v3010.js,
+ *      removed += banner.mp4
+ *  (5) FULL REBRAND (v3.06.3, still holds): ZERO /kaviz/i anywhere in runtime src
+ *  (6) old suites: version pins moved to 3.06.4
  */
 const assert = require('assert');
 const fs = require('fs');
@@ -34,42 +34,55 @@ const FULL = '\uFF22\uFF21\uFF34\uFF29\uFF33\uFF34\uFF21  \uFF2D\uFF24';        
 let ok = 0, bad = 0;
 const t = (name, cond) => { if (cond) { ok++; console.log('  ✅ ' + name); } else { bad++; console.log('  ❌ ' + name); } };
 
-// ── (1) banner.mp4 asset ──
-const vidPath = path.join(REPO, 'banner.mp4');
-t('banner.mp4 exists', fs.existsSync(vidPath));
-if (fs.existsSync(vidPath)) {
-    const buf = fs.readFileSync(vidPath);
-    const mb = buf.length / 1048576;
-    t(`banner.mp4 real MP4 (ftyp magic)`, buf.length > 12 && buf.slice(4, 8).toString() === 'ftyp');
-    t(`banner.mp4 size ${mb.toFixed(2)}MB — under WhatsApp 16MB video cap`, mb < 16);
-    t('banner.mp4 not truncated (>3MB)', mb > 3);
-}
+// ── (1) banner.mp4 removed everywhere (v3.06.4: photo deck replaces the video) ──
+t('banner.mp4 gone from repo tree', !fs.existsSync(path.join(REPO, 'banner.mp4')));
+t('banner.mp4 NOT in manifest.files', !man.files.includes('banner.mp4'));
+t('manifest.removed += banner.mp4 (every bot deletes stale video on update)', Array.isArray(man.removed) && man.removed.includes('banner.mp4'));
 
-// ── (2) banner.jpg deleted everywhere ──
+// ── (1b) media/menu photo deck shipped ──
+const DECK = path.join(REPO, 'media', 'menu');
+t('media/menu deck exists', fs.existsSync(DECK));
+const deckFiles = fs.readdirSync(DECK).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)).sort();
+t(`deck has exactly the 8 shipped renders 01-08.jpg — found ${deckFiles.length}`, deckFiles.join(',') === ['01', '02', '03', '04', '05', '06', '07', '08'].map((n) => `${n}.jpg`).join(','));
+let deckMB = 0, allJpeg = true;
+for (const f of deckFiles) {
+    const b = fs.readFileSync(path.join(DECK, f));
+    deckMB += b.length / 1048576;
+    if (!(b.length > 12 && b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF)) allJpeg = false;   // JPEG magic
+}
+t('all deck files are real JPEGs (FFD8 magic)', allJpeg);
+t(`deck total ${deckMB.toFixed(2)}MB — repo-friendly (<4MB)`, deckMB > 0.5 && deckMB < 4);
+
+// ── (2) banner.jpg still deleted everywhere ──
 t('banner.jpg gone from repo tree', !fs.existsSync(path.join(REPO, 'banner.jpg')));
 t('banner.jpg NOT in manifest.files', !man.files.includes('banner.jpg'));
 t('banner.jpg referenced in bot.js ONLY by the boot-clean rmSync', (BOT.match(/banner\.jpg/g) || []).length === 1);
 
-// ── (3) bot.js video-banner wiring ──
-t('BANNER_VID const → banner.mp4', BOT.includes("path.join(__dirname, 'banner.mp4')"));
-t('bannerMedia() helper defined', /function bannerMedia\(\)/.test(BOT));
-t('bannerMedia serves video+mimetype', BOT.includes("video: fs.readFileSync(BANNER_VID)") && BOT.includes("mimetype: 'video/mp4'"));
-t('LOGO (.setlogo) still wins over video', BOT.indexOf('LOGO)') < BOT.indexOf('BANNER_VID)'));
-t('boot rmSync self-cleans stale banner.jpg', /rmSync\(path\.join\(__dirname, 'banner\.jpg'\)/.test(BOT));
-const sites = (BOT.match(/const bm = bannerMedia\(\);/g) || []).length;
-t(`4 send sites route through bannerMedia() (menu/setting/alive/mode) — found ${sites}`, sites === 4);
-t('no legacy per-site BANNER ternary left', !BOT.includes('fs.existsSync(BANNER)'));
+// ── (3) bot.js deck wiring (menuMedia: LOGO > deck rotation > null) ──
+t('MENU_DIR const → media/menu', BOT.includes("path.join(__dirname, 'media', 'menu')"));
+t('MENU_IDX rotation memory → media/menu-idx.json', BOT.includes("path.join(__dirname, 'media', 'menu-idx.json')"));
+t('menuMedia() helper defined', /function menuMedia\(\)/.test(BOT));
+t('deckList() helper defined', /const deckList = \(\) =>/.test(BOT));
+t('menuMedia serves image from deck', BOT.includes('image: fs.readFileSync(path.join(MENU_DIR, f))'));
+t('rotation state written after each card send', BOT.includes("JSON.stringify({ i: (i + 1) % files.length"));
+t('LOGO (.setlogo) checked before deck', BOT.indexOf('fs.existsSync(LOGO)') < BOT.indexOf('const files = deckList()'));
+t('boot rmSync self-cleans stale banner.mp4', /rmSync\(path\.join\(__dirname, 'banner\.mp4'\)/.test(BOT));
+t('old banner.jpg boot-clean still present', /rmSync\(path\.join\(__dirname, 'banner\.jpg'\)/.test(BOT));
+t('no BANNER_VID video payload left', !BOT.includes("video: fs.readFileSync(BANNER_VID)") && !BOT.includes('mimetype: \'video/mp4\''));
+const sites = (BOT.match(/const bm = menuMedia\(\);/g) || []).length;
+t(`4 send sites route through menuMedia() (menu/setting/alive/mode) — found ${sites}`, sites === 4);
 t('old banner.jpg boot-clean + helper before first send site', BOT.indexOf('rmSync') < BOT.indexOf('menuCaption(msg.pushName)'));
 
-// ── (4) manifest v3.06.3 ──
-t('manifest version 3.06.3', man.version === '3.06.3');
-t('pkg version 3.06.3', pkg.version === '3.06.3');
-t('manifest.files += banner.mp4', man.files.includes('banner.mp4'));
+// ── (4) manifest v3.06.4 ──
+t('manifest version 3.06.4', man.version === '3.06.4');
+t('pkg version 3.06.4', pkg.version === '3.06.4');
+t('manifest.files += media/menu/01.jpg..08.jpg', [...Array(8)].every((_, i) => man.files.includes(`media/menu/0${i + 1}.jpg`)));
+t('manifest.files += tests/test_v3010.js', man.files.includes('tests/test_v3010.js'));
 t('manifest.files += tests/test_v309.js', man.files.includes('tests/test_v309.js'));
-t('manifest.removed += banner.jpg (every bot deletes stale file on update)', Array.isArray(man.removed) && man.removed.includes('banner.jpg'));
-t('manifest.notes opens with v3.06.3 video-banner entry', typeof man.notes === 'string' && man.notes.startsWith('v3.06.3:'));
+t('manifest.notes opens with v3.06.4 photo-deck entry', typeof man.notes === 'string' && man.notes.startsWith('v3.06.4:'));
+t('.gitignore ignores media/menu-idx.json (rotation memory is runtime-only)', fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8').includes('media/menu-idx.json'));
 
-// ── (5) FULL REBRAND — zero KAVIZ in runtime src ──
+// ── (5) FULL REBRAND — zero KAVIZ in runtime src (v3.06.3, still holds) ──
 const rootJs = fs.readdirSync(REPO).filter((f) => f.endsWith('.js'));
 let leaks = [];
 for (const f of rootJs) {
@@ -90,18 +103,18 @@ t('features.js sticker pack default = ＢＡＴＩＳＴＡ  ＭＤ', FEAT.inclu
 t('docs rebranded (README.md, README-BOT.md)', !/kaviz/i.test(fs.readFileSync(path.join(REPO, 'README.md'), 'utf8'))
     && !/kaviz/i.test(fs.readFileSync(path.join(REPO, 'README-BOT.md'), 'utf8')));
 
-// ── (6) old suites: pins moved to 3.06.3 ──
+// ── (6) old suites: pins moved to 3.06.4 ──
 const pinned = ['test_v306.js', 'test_v289.js', 'test_v300.js', 'test_v308.js'];
 for (const f of pinned) {
     const p = path.join(REPO, 'tests', f);
     if (fs.existsSync(p)) {
         const src = fs.readFileSync(p, 'utf8');
-        t(`${f} pins 3.06.3`, src.includes('3.06.3') && !src.includes('3.06.2'));
+        t(`${f} pins 3.06.4`, src.includes('3.06.4') && !src.includes('3.06.3'));
     }
 }
-t('no suite still pins 3.06.2 (tests dir, self excluded)', fs.readdirSync(path.join(REPO, 'tests'))
-    .filter((f) => f.endsWith('.js') && f !== 'test_v309.js')
-    .every((f) => !fs.readFileSync(path.join(REPO, 'tests', f), 'utf8').includes("'3.06.2'")));
+t('no suite still pins 3.06.3 (tests dir, self + test_v3010 excluded)', fs.readdirSync(path.join(REPO, 'tests'))
+    .filter((f) => f.endsWith('.js') && f !== 'test_v309.js' && f !== 'test_v3010.js')
+    .every((f) => !fs.readFileSync(path.join(REPO, 'tests', f), 'utf8').includes("'3.06.3'")));
 
 console.log(bad ? `\n⚠️ ${ok} passed, ${bad} failed` : `\n🎉 ALL ${ok} TESTS PASSED`);
 process.exit(bad ? 1 : 0);

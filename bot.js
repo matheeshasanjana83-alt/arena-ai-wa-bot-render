@@ -54,13 +54,23 @@ const reminders = require('./reminders');
 
 const AUTH = path.join(__dirname, 'auth');
 const LOGO = path.join(__dirname, 'logo.img');        // your own photo (.setlogo) — never touched by .update
-const BANNER_VID = path.join(__dirname, 'banner.mp4'); // 🎬 v3.06.3: ＢＡＴＩＳＴＡ  ＭＤ banner VIDEO (60s phonk edit — beat-synced cuts)
-try { fs.rmSync(path.join(__dirname, 'banner.jpg'), { force: true }); } catch { }   // old static banner removed — every bot self-cleans on boot
-/** banner payload for menu / settings / mode / alive cards — LOGO (user's .setlogo) > banner video > null (text only) */
-function bannerMedia() {
+const MENU_DIR = path.join(__dirname, 'media', 'menu');            // 🖼️ v3.06.4 ＢＡＴＩＳＴＡ  ＭＤ photo DECK — හැම .menu එකකම ඊළඟ photo එක
+const MENU_IDX = path.join(__dirname, 'media', 'menu-idx.json');   // rotation memory — restart උනත් තැන ඉඳන්
+try { fs.rmSync(path.join(__dirname, 'banner.jpg'), { force: true }); } catch { }   // v3.06.3 static banner — every bot self-cleans on boot
+try { fs.rmSync(path.join(__dirname, 'banner.mp4'), { force: true }); } catch { }   // v3.06.4 video banner OUT — photo deck IN
+const deckList = () => { try { return fs.readdirSync(MENU_DIR).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)).sort(); } catch { return []; } };
+/** v3.06.4 card payload — LOGO (.setlogo, personal photo) > deck photo (SEQUENTIAL rotation: call එකකට ඊළඟ photo එක) > null (text only) */
+function menuMedia() {
+    try { if (fs.existsSync(LOGO)) return { image: fs.readFileSync(LOGO) }; } catch { }
     try {
-        if (fs.existsSync(LOGO)) return { image: fs.readFileSync(LOGO) };
-        if (fs.existsSync(BANNER_VID)) return { video: fs.readFileSync(BANNER_VID), mimetype: 'video/mp4' };
+        const files = deckList();
+        if (files.length) {
+            let i = 0;
+            try { i = (JSON.parse(fs.readFileSync(MENU_IDX, 'utf8')).i || 0) % files.length; } catch { }
+            const f = files[i];
+            try { fs.writeFileSync(MENU_IDX, JSON.stringify({ i: (i + 1) % files.length, n: files.length })); } catch { }
+            return { image: fs.readFileSync(path.join(MENU_DIR, f)) };
+        }
     } catch { }
     return null;
 }
@@ -157,7 +167,7 @@ const HELP = `*◈ ＢＡＴＩＳＴＡ  ＭＤ ◈* — commands
 🤖 *.ai <ප්‍රශ්නය>* (reply කරලත් · *.ai reset* · *.ai memory*)
 ⏰ *.remind 10m <note>* · 👁 photo/PDF reply + *.ai* · 🎨 *.ai* — "image එකක් හදලා දෙන්න"
 🔧 *.net* · *.setproxy* · *.setconsumet* · *.proxies* · *.setcookies* · *.setkey* · *.keys*
-⚙️ *.setting* (panel) · *.mode* · *.react* · *.maxmb* · *.setlogo* · *.autoupdate* · *.update* · *.version* · *.restart*
+⚙️ *.setting* (panel) · *.mode* · *.react* · *.maxmb* · *.setlogo* · *.addmenu* · *.autoupdate* · *.update* · *.version* · *.restart*
 🛡️ *.antibug* · *.block* · *.unblock* · *.blocklist* · *.antispam* · *.spamlog*
 
 > 📥 direct · GitHub · Drive · MediaFire · MEGA · Dropbox · Pixeldrain…
@@ -376,7 +386,10 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
 
                 if (c === '.alive' || c === '.status') { await sendAlive(send, jid, msg, 'alive'); continue; }
                 if (c === '.setlogo') { await handleSetLogo(send, jid, msg); continue; }
-                if (c === '.dellogo') { fs.rmSync(LOGO, { force: true }); await send(jid, { text: '🗑️ logo reset — default banner එක පාවිච්චි වෙනවා' }, { quoted: msg }); continue; }
+                if (c === '.dellogo') { fs.rmSync(LOGO, { force: true }); await send(jid, { text: '🗑️ logo reset — දැන් deck photo එක පාවිච්චි වෙනවා' }, { quoted: msg }); continue; }
+                if (c === '.addmenu') { await handleAddMenu(send, jid, msg); continue; }   // 🖼️ v3.06.4 photo deck
+                if (c === '.delmenu') { await handleDelMenu(send, jid, msg, rest[0]); continue; }
+                if (c === '.deck' || c === '.menudeck') { await send(jid, { text: deckStatus() }, { quoted: msg }); continue; }
                 if (c === '.mode') { await handleMode(send, jid, msg, (rest[0] || '').toLowerCase()); continue; }
                 if (c === '.ping') { const ms = Math.max(1, Date.now() - Number(msg.messageTimestamp) * 1000); await send(jid, { text: `🏓 *Pong!* ${ms} ms` }, { quoted: msg }); continue; }
                 if (c === '.menu') { await handleMenu(send, jid, msg, rest[0]); continue; }
@@ -516,7 +529,7 @@ function dlQueue(fn, info) {
 const menuState = new Map();   // jid → { id, at } of the last menu (for number replies)
 const settingState = new Map();   // jid → { id, at } of the last .setting panel (number replies)
 const modeState = new Map();   // jid → { id, at } of the last .mode panel (number replies) — v2.41
-const OWNER_CMDS = new Set(['.mode', '.setting', '.settings', '.setkey', '.delkey', '.keys', '.autoupdate', '.update', '.restart', '.block', '.unblock', '.blocklist', '.spamlog', '.antibug', '.antispam', '.maxmb', '.setmax', '.limit', '.setlogo', '.dellogo', '.setproxy', '.setconsumet', '.proxies', '.proxypool', '.net', '.netcheck', '.setcookies', '.tbcookie', '.del', '.delete', '.react', '.forward']);   // 🔒 never for others (v2.41)
+const OWNER_CMDS = new Set(['.mode', '.setting', '.settings', '.setkey', '.delkey', '.keys', '.autoupdate', '.update', '.restart', '.block', '.unblock', '.blocklist', '.spamlog', '.antibug', '.antispam', '.maxmb', '.setmax', '.limit', '.setlogo', '.dellogo', '.addmenu', '.delmenu', '.deck', '.menudeck', '.setproxy', '.setconsumet', '.proxies', '.proxypool', '.net', '.netcheck', '.setcookies', '.tbcookie', '.del', '.delete', '.react', '.forward']);   // 🔒 never for others (v2.41)
 const REACTS = ['⚡', '🔥', '✨', '💠', '🚀', '😎', '🤖', '💫', '🌟', '🎯', '💎', '🫡', '👌', '🌀', '🍃'];
 const readSettings = () => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), 'utf8')); } catch { return {}; } };
 const reactOn = () => !process.env.ARENA_NO_REACT && readSettings().react !== false;
@@ -577,7 +590,7 @@ const CATS = [
 ✦ Smart multi-engine fallback auto (engine එකක් down වුණත් .ai වැඩ)
 ✦ *.setkey gemini/groq/zai/together/polli <KEY>* · *.keys* · *.stt* — voice→text`],
     ['🔧', 'Network', `*🔧 NETWORK*\n\n✦ *.net <link>* — fail වුණොත් හේතුව\n✦ *.setproxy <url|off>* — block sites වලට\n✦ *.setconsumet <url|off>* — animepahe API mirror 🎌\n✦ *.proxies* — free pool status · *.proxies check*\n✦ *.setcookies* — YouTube bot-check fix\n✦ *.tbcookie <ndus>* — ☁️ TeraBox cookie (LIVE verify)`],
-    ['⚙️', 'Settings', `*⚙️ SETTINGS*\n\n✦ *.setlogo* / *.dellogo* — menu logo\n✦ *.react on|off* — auto react\n✦ *.maxmb <MB>* — download limit\n✦ *.setting* — ⚙️ settings panel (අංක reply → toggle)
+    ['⚙️', 'Settings', `*⚙️ SETTINGS*\n\n✦ *.setlogo* / *.dellogo* — menu logo\n✦ *.addmenu* — 🖼 photo deck add (හැම .menu එකකම ඊළඟ photo එක rotate වෙනවා) · *.deck* · *.delmenu <n>*\n✦ *.react on|off* — auto react\n✦ *.maxmb <MB>* — download limit\n✦ *.setting* — ⚙️ settings panel (අංක reply → toggle)
 ✦ *.mode* — 🛡 mode panel (public / private / inbox / groups + AI chat modes)\n✦ *.autoupdate on|off* — GitHub එකෙන් auto update (default on)\n✦ *.update* · *.restart* · *.version*`],
     ['🛡️', 'Security', `*🛡️ SECURITY*\n\n✦ commands — ඔයාට විතරයි (owner-only)\n✦ anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard`],
     ['📊', 'Status', null],
@@ -610,7 +623,7 @@ async function handleMenu(send, jid, msg, arg) {
         return send(jid, { text: cat[2].replace('{MAX}', human(maxBytes())) + '\n' + foot('↩️ *.menu*') }, { quoted: msg });
     }
     const caption = menuCaption(msg.pushName);
-    const bm = bannerMedia();
+    const bm = menuMedia();
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) menuState.set(jid, { id: sent.key.id, at: Date.now() });
 }
@@ -693,7 +706,7 @@ async function handleSetting(send, jid, msg, arg) {
         await send(jid, { text: '✅ ' + done }, { quoted: msg });   // toggle confirm → පස්සේ panel refresh
     }
     const caption = settingCaption();
-    const bm = bannerMedia();
+    const bm = menuMedia();
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) settingState.set(jid, { id: sent.key.id, at: Date.now()});   // number replies → අලුත් panel එකටම
 }
@@ -717,7 +730,7 @@ function aliveCaption(kind = 'online') {
 }
 async function sendAlive(send, jid, quoted, kind) {
     const caption = aliveCaption(kind);
-    const bm = bannerMedia();
+    const bm = menuMedia();
     const opts = quoted ? { quoted } : undefined;
     if (bm) return send(jid, { ...bm, caption }, opts);
     return send(jid, { text: caption }, opts);
@@ -740,11 +753,51 @@ async function handleSetLogo(send, jid, msg) {
         if (!buf || buf.length < 1000) throw new Error('photo එක හිස්');
         if (buf.length > 5 * 1024 * 1024) throw new Error('photo එක 5 MB ට වඩා ලොකුයි');
         fs.writeFileSync(LOGO, buf);
-        await send(jid, { text: '✅ logo save · preview 👇', edit: st.key });
+        await send(jid, { text: '✅ logo save · preview 👇\n> මේ photo එක දැන් හැම card එකකම යනවා (deck rotation එක නවතිනවා) · deck එකට ආපහු: *.dellogo*', edit: st.key });
         await sendAlive(send, jid, null, 'online');
     } catch (e) {
         await send(jid, { text: `❌ ${e.message}\n> photo එක ආයෙත් යවලා reply කරන්න *.setlogo*`, edit: st.key });
     }
+}
+
+// ───────── v3.06.4 — 🖼 MENU PHOTO DECK: .menu ගැහූ සැරෑල්ලකම ඊළඟ photo එක (video banner එකට බෑ — photo විතරයි) ─────────
+function deckStatus() {
+    const files = deckList();
+    if (!files.length) return '🖼️ *MENU DECK* — හිස්!\n\n✦ photo එකක් යවලා caption එකට *.addmenu* දෙන්න\n✦ නැත්නම් photo එකකට *reply* කරලා *.addmenu*';
+    let i = 0; try { i = (JSON.parse(fs.readFileSync(MENU_IDX, 'utf8')).i || 0) % files.length; } catch { }
+    return ['🖼️ *MENU DECK* — photo ' + files.length + 'ක්', ...files.map((f, k) => `${k + 1} · ${f}${k === i ? '  ⬅️ ඊළඟ' : ''}`), '', '➕ add — photo එකක් යවලා *.addmenu*  ·  ➖ del — *.delmenu <number>*'].join('\n');
+}
+async function handleAddMenu(send, jid, msg) {
+    const unwrap = (m) => m?.viewOnceMessage?.message || m?.viewOnceMessageV2?.message || m?.ephemeralMessage?.message || m;
+    const own = unwrap(msg.message);
+    const ctx = own?.extendedTextMessage?.contextInfo || own?.imageMessage?.contextInfo;
+    let target = null;
+    if (own?.imageMessage) target = { key: msg.key, message: own };
+    else if (ctx?.quotedMessage && unwrap(ctx.quotedMessage)?.imageMessage) target = { key: { remoteJid: msg.key.remoteJid, id: ctx.stanzaId, fromMe: true, participant: ctx.participant }, message: unwrap(ctx.quotedMessage) };
+    if (!target) return send(jid, { text: '🖼️ *.addmenu* — menu photo deck එකට add\n\n1. photo එකක් මේ chat එකට යවන්න (caption එකට *.addmenu* දෙන්න)\n2. නැත්නම් photo එකකට *reply* කරලා *.addmenu*\n\nDeck එක බලන්න: *.deck*  ·  අයින් කරන්න: *.delmenu <number>*' }, { quoted: msg });
+    const st = await send(jid, { text: '🖼️ deck එකට add වෙනවා…' }, { quoted: msg });
+    try {
+        const buf = await mediaDownloader(target);
+        if (!buf || buf.length < 1000) throw new Error('photo එක හිස්');
+        if (buf.length > 10 * 1024 * 1024) throw new Error('photo එක 10 MB ට වඩා ලොකුයි');
+        fs.mkdirSync(MENU_DIR, { recursive: true });
+        const mime = String(target.message?.imageMessage?.mimetype || '');
+        const ext = /png/i.test(mime) ? 'png' : /webp/i.test(mime) ? 'webp' : 'jpg';
+        fs.writeFileSync(path.join(MENU_DIR, `user-${Date.now()}.${ext}`), buf);
+        const files = deckList();
+        await send(jid, { text: `✅ Deck add! 🖼️ දැන් photo ${files.length}ක් තියෙනවා\n> ඊළඟ *.menu* ඉඳන් rotation එකේ පාවිච්චි වෙනවා · අයින් කරන්න: *.delmenu <number>*`, edit: st.key });
+    } catch (e) {
+        await send(jid, { text: `❌ ${e.message}\n> photo එක ආයෙත් යවලා *.addmenu* ගහන්න`, edit: st.key });
+    }
+}
+function handleDelMenu(send, jid, msg, arg) {
+    const files = deckList();
+    const n = parseInt(arg, 10);
+    if (!files.length) return send(jid, { text: '🖼️ deck එක හිස් — මැකෙන්න මොකුත් නෑ\n\n' + deckStatus() }, { quoted: msg });
+    if (!n || n < 1 || n > files.length) return send(jid, { text: '❌ number එකක් දෙන්න — 1 – ' + files.length + '\n\n' + deckStatus() }, { quoted: msg });
+    fs.rmSync(path.join(MENU_DIR, files[n - 1]), { force: true });
+    try { fs.rmSync(MENU_IDX, { force: true }); } catch { }   // idx reset → අලුත් order එක clean
+    return send(jid, { text: `🗑️ #${n} (${files[n - 1]}) මකලා දැම්මා — deck එකේ දැන් photo ${files.length - 1}ක්` }, { quoted: msg });
 }
 
 /** v2.41 — 🛡 BOT MODE panel: numbered bot modes 1-4 · AI chat 5/6 · AI modes 11-16 */
@@ -803,7 +856,7 @@ async function handleMode(send, jid, msg, arg) {
         await send(jid, { text: '✅ mode: ' + MODE_LABELS[arg === 'inbox' ? 3 : 4] }, { quoted: msg });
     }
     const caption = modeCaption();
-    const bm = bannerMedia();
+    const bm = menuMedia();
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) modeState.set(jid, { id: sent.key.id, at: Date.now() });   // number replies → අලුත් panel එකටම
 }
@@ -1437,7 +1490,7 @@ async function handleDownload(send, jid, msg, link, siteTag, cap) {
 
 process.on('unhandledRejection', (e) => log('unhandled: ' + (e?.message || e)));
 process.on('uncaughtException', (e) => log('uncaught: ' + e.message));
-module.exports = { _agentTick: agentTick, AGENT_MSG, handleDownload, getText, onMessages, replyJid, ME, aliveCaption, OWNER_CMDS, modeCaption, handleForward, maybeAiReply, handleAI, _aiLast: aiLast, _groupLog: groupLog, _glogPush: glogPush, SITE_DL, _setMediaDownloader: (f) => { mediaDownloader = f; }, _setSock: (x) => { SOCK = x; }, _dlQueue: dlQueue, _dlDepth: () => dlDepth, _dlBudgetMin: dlBudgetMin };
+module.exports = { _agentTick: agentTick, AGENT_MSG, handleDownload, getText, onMessages, replyJid, ME, aliveCaption, OWNER_CMDS, modeCaption, handleForward, maybeAiReply, handleAI, _aiLast: aiLast, _groupLog: groupLog, _glogPush: glogPush, SITE_DL, _setMediaDownloader: (f) => { mediaDownloader = f; }, _setSock: (x) => { SOCK = x; }, _dlQueue: dlQueue, _dlDepth: () => dlDepth, _dlBudgetMin: dlBudgetMin, _menuMedia: menuMedia, _deckList: deckList, _deckReset: () => { try { fs.rmSync(MENU_IDX, { force: true }); } catch { } } };
 if (require.main === module) {
     console.log('🚀 ＢＡＴＩＳＴＡ  ＭＤ starting...');
     require('./media').checkUpdate(true).catch(() => { });   // yt-dlp fresh → FB "Cannot parse data" / YT format errors fix (max 1 check/hour)
