@@ -839,8 +839,18 @@ async function mbPosRows(sid, rid, failUrl, tries = 3) {
     return [];
 }
 
-async function mbDirectUrl(sid, se, ep, rid, failUrl) {
-    const rows = await mbPosRows(sid, rid, failUrl, 3);
+/** v3.06.6 — resolve the download URL for one resource row.
+ *  LIVE-VERIFIED 2026-11-13 (the decisive discovery): the resource LIST row's own resourceLink IS
+ *  a complete time-signed MP4 for visitors (bcdn.hakunaymatata.com/resource/<hash>.mp4?sign=…&t=…,
+ *  ranged GET → 206 video/mp4, content-range total == the position/v2 size) — so when the row
+ *  carries a real link we use it DIRECTLY (position/v2 currently answers metadata rows with
+ *  resourceLink:"" for visitors). position/v2 stays as the fallback for rows whose link IS a
+ *  deprecation-notice stub (the MovieBox-Tui recovery path: failUrl=<stub>&failCode=404&
+ *  resourceNum=0&isVip=true) and as the exact-size source for the menu. */
+async function mbDirectUrl(sid, se, ep, rid, rowLink) {
+    const own = String(rowLink || '');
+    if (own.startsWith('http') && !MB_STUB_RE.test(own)) return own;   // row's own signed MP4 — freshest possible, no extra API call
+    const rows = await mbPosRows(sid, rid, own, 3);
     const link = String(rows[0]?.resourceLink || rows[0]?.url || '');
     if (!link || MB_STUB_RE.test(link)) throw new Error('MovieBox මේ item එක VIP-only වෙලා — free copy එකක් නෑ');
     return link;
@@ -896,9 +906,8 @@ function mbSizePlausible(sizeMB, durSec) {
 }
 
 /** v2.46 — quality rows from the resource path (REAL mp4 per resolution).
- *  row.direct = { sid, se, ep, rid, codec, stub } — the signed URL is resolved FRESH at download
- *  time. v3.06.5: the row's own (often stub) link rides along — position/v2's failUrl wants the
- *  exact failed URL the app would report (TUI passes the stub origin; empty works too).
+ *  row.direct = { sid, se, ep, rid, codec, link } — link = the row's OWN resourceLink (often a
+ *  complete signed MP4; mbDirectUrl uses it directly, position/v2 only when it's a stub).
  *  v2.62: sizes come from resource-position/v2 (exact); junk list sizes are guarded out. */
 async function mbDirectRows(sid, se, ep) {
     const items = await mbResourceItems(sid, se, ep);
@@ -911,11 +920,11 @@ async function mbDirectRows(sid, se, ep) {
     const rows = [...byRes.entries()].sort((a, b) => b[0] - a[0]).map(([r, it]) => ({
         h: r, bw: 0, label: `${r}p`, sizeMB: Math.round((Number(it.size) || 0) / 1048576),
         durSec: Number(it.duration) || 0,
-        transcode: false, direct: { sid, se: Number(se || 0), ep: Number(ep || 0), rid: String(it.resourceId), codec: String(it.codecName || ''), stub: String(it.resourceLink || it.url || '') },
+        transcode: false, direct: { sid, se: Number(se || 0), ep: Number(ep || 0), rid: String(it.resourceId), codec: String(it.codecName || ''), link: String(it.resourceLink || it.url || '') },
     }));
     await Promise.all(rows.map(async (row) => {
         try {
-            const bytes = await mbPositionSize(sid, row.direct.rid, 2, row.direct.stub);
+            const bytes = await mbPositionSize(sid, row.direct.rid, 2, row.direct.link);
             if (bytes > 0) { row.sizeMB = Math.round(bytes / 1048576); return; }
         } catch { }
         if (!mbSizePlausible(row.sizeMB, row.durSec)) row.sizeMB = 0;   // junk → hide (honest menu beats a fake "~1 MB")
@@ -1046,7 +1055,7 @@ async function combinedRows(sid, se, ep, streams) {
 async function directDownload(row, { tmpDir, finalName, onProgress }) {
     fs.mkdirSync(tmpDir, { recursive: true });
     const outPath = path.join(tmpDir, finalName);
-    const url = await mbDirectUrl(row.direct.sid, row.direct.se, row.direct.ep, row.direct.rid, row.direct.stub);
+    const url = await mbDirectUrl(row.direct.sid, row.direct.se, row.direct.ep, row.direct.rid, row.direct.link);
     const hdrs = () => ({ 'User-Agent': mbUA || 'okhttp/4.12.0', Accept: '*/*', 'Accept-Encoding': 'identity' });   // v3.06.5: CDN UA follows the active identity (TUI passes its own UA on direct MP4s)
     const openRes = async (u, range) => {   // manual redirect follow (CDN 302s, headers preserved)
         let cur = u;

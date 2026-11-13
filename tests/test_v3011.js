@@ -1,5 +1,5 @@
 /**
- * test_v3011.js — v3.06.5 🎬 .moviedex FIX: "moviedex එක වැඩ නැනේ එක බලලා fix කරන්න" (user, 2026-11-13)
+ * test_v3011.js — v3.06.5→v3.06.6 🎬 .moviedex FIX: "moviedex එක වැඩ නැනේ එක බලලා fix කරන්න" (user, 2026-11-13)
  *
  *  Root causes found live (2026-11-13 diag):
  *   ① the shared-pool BOOTSTRAP token 406s "find no content" on EVERY BFF call (soft region-block
@@ -15,9 +15,9 @@
  *       old shape kept as mid-fallback (mbPosQueryOld), mbPosRows = TUI → old → style-flip retry
  *   (3) TUI identity default: Cronet UA, 4.0.01, sp 40401, version_code 50020117-21, region US;
  *       dynamic x-client-build (sec+ms+000+rand . md5hex) ; OLD hex secret bytes + base64 key kept
- *   (4) row.direct carries stub link → mbDirectUrl passes it; CDN UA follows identity
+ *   (4) row.direct carries the row OWN link; mbDirectUrl = row-link-first → position/v2 fallback; CDN UA follows identity
  *   (5) boot registration simplified (no bootstrap condition)
- *   (6) version pins 3.06.5 (pkg + lock + manifest), notes opens v3.06.5, manifest lists this file
+ *   (6) version pins 3.06.6 (pkg + lock + manifest), notes opens v3.06.6, manifest lists this file
  *   (7) rebrand/regressions still hold (ＢＡＴＩＳＴＡ  ＭＤ footer, zero /kaviz/i in moviedex)
  *   (8) OFFLINE function checks: mbClientBuild format, mbPosQuery shape, mbHeaders TUI style,
  *       _mbState.style — plus optional RUN_LIVE E2E (search → rows → direct URL → CDN range GET)
@@ -43,7 +43,7 @@ console.log('── (2) TUI position params ──');
 t('mbPosQuery = TUI shape (failCode=404&resourceNum=0&isVip=true)', MV.includes('&failUrl=${encodeURIComponent(stub)}&failCode=404&resourceNum=0&isVip=true'));
 t('mbPosQueryOld keeps the v2.46 shape as mid-fallback', MV.includes('failUrl=&failCode=&resourceNum=1&isVip=false'));
 t('mbPosRows exists (TUI → old → style-flip)', /async function mbPosRows\(/.test(MV) && MV.includes("mbStyle = mbStyle === 'tui' ? 'bot' : 'tui'"));
-t('mbDirectUrl routes through mbPosRows', /async function mbDirectUrl\([\s\S]{0,200}await mbPosRows\(/.test(MV));
+t('mbDirectUrl row-link-FIRST (own signed MP4 → position/v2 fallback)', MV.includes("if (own.startsWith('http') && !MB_STUB_RE.test(own)) return own;") && /async function mbDirectUrl\([\s\S]{0,400}await mbPosRows\(/.test(MV));
 t('mbPositionSize routes through mbPosRows (menu sizes back)', /async function mbPositionSize\([\s\S]{0,300}await mbPosRows\(/.test(MV));
 t('position link accepts url OR resourceLink field', MV.includes("rows[0]?.resourceLink || rows[0]?.url"));
 
@@ -57,23 +57,23 @@ t('mbIdentityTui: version_code 50020117-21', MV.includes('50020117') && MV.inclu
 t('mbIdentityBot fallback kept (4.0.02/NG)', MV.includes("'4.0.02.0831.03'") && MV.includes("region: 'NG'"));
 t('mbStyle defaults to tui', /let mbStyle = 'tui'/.test(MV));
 
-console.log('── (4) stub link + CDN UA ──');
-t('row.direct carries stub link', MV.includes("stub: String(it.resourceLink || it.url || '')"));
-t('directDownload passes row.direct.stub', MV.includes('row.direct.se, row.direct.ep, row.direct.rid, row.direct.stub'));
+console.log('── (4) row link + CDN UA ──');
+t('row.direct carries the row OWN link (row-link-first — live-verified signed MP4)', MV.includes("link: String(it.resourceLink || it.url || '')"));
+t('directDownload passes row.direct.link', MV.includes('row.direct.se, row.direct.ep, row.direct.rid, row.direct.link'));
 t('CDN UA follows the active identity', MV.includes("'User-Agent': mbUA || 'okhttp/4.12.0'"));
 
 console.log('── (5) boot registration simplified ──');
 t('boot re-register without bootstrap condition', MV.includes('if (!tokenUsable(mbUserToken)) scheduleMbRegister(2000)'));
 
 console.log('── (6) version pins ──');
-t('pkg 3.06.5', pkg.version === '3.06.5');
-t('lock 3.06.5', lock.version === '3.06.5');
-t('manifest 3.06.5', man.version === '3.06.5');
-t('notes opens v3.06.5', typeof man.notes === 'string' && man.notes.startsWith('v3.06.5:'));
+t('pkg 3.06.5', pkg.version === '3.06.6');
+t('lock 3.06.5', lock.version === '3.06.6');
+t('manifest 3.06.5', man.version === '3.06.6');
+t('notes opens v3.06.6', typeof man.notes === 'string' && man.notes.startsWith('v3.06.6:'));
 t('manifest lists tests/test_v3011.js', man.files.includes('tests/test_v3011.js'));
 
 console.log('── (7) rebrand + regressions ──');
-t('moviedex footer = ＢＡＴＩＳＴＡ  ＭＤ via style.js BRAND (v3.06.5 rebrand reach)', MV.includes("const MV_FOOT = \`> ⚡ \${BRAND} 🍁\`") && !/ＫＡＶＩＺ/.test(MV));
+t('moviedex footer = ＢＡＴＩＳＴＡ  ＭＤ via style.js BRAND (rebrand reach)', MV.includes("const MV_FOOT = \`> ⚡ \${BRAND} 🍁\`") && !/ＫＡＶＩＺ/.test(MV));
 t('pairsite h1 rebranded (full-width scan)', !/ＫＡＶＩＺ/.test(fs.readFileSync(path.join(REPO, 'pairsite.js'), 'utf8')));
 t('ZERO /kaviz/i in runtime moviedex source', !/\bkaviz\b/i.test(MV.replace(/ＫＡＶＩＺ/g, '')));
 t('resource list perPage 20 (server cap) untouched', MV.includes('perPage=20&all=0&pagerMode=0&resolution='));
@@ -112,7 +112,7 @@ if (process.env.RUN_LIVE) {
             const d = rows.find(r => r.direct);
             t('live rows carry .direct', !!d);
             if (d) {
-                const url = await mod.mbDirectUrl(d.direct.sid, d.direct.se, d.direct.ep, d.direct.rid, d.direct.stub);
+                const url = await mod.mbDirectUrl(d.direct.sid, d.direct.se, d.direct.ep, d.direct.rid, d.direct.link);
                 t('live direct URL real (' + url.slice(0, 60) + '…)', /^https?:\/\//.test(url) && !/macdn\.aoneroom\.com\/other\//.test(url));
                 const r = await fetch(url, { headers: { 'User-Agent': mod.mbHeaders('GET', 'https://api6.aoneroom.com/', '').hasOwnProperty('x') ? 'okhttp/4.12.0' : 'okhttp/4.12.0', Range: 'bytes=0-1048575' }, signal: AbortSignal.timeout(30000) });
                 const buf = await r.arrayBuffer();

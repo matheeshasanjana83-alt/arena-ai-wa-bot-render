@@ -33,8 +33,8 @@ const toolsSrc = fs.readFileSync(__dirname + '/../tools.js', 'utf8');
 (async () => {
     console.log('— v3.05.0 pins + markers —');
     ok('version 3.05.0 pkg+manifest + notes headline + manifest lists test_v299.js', () => {
-        assert.strictEqual(pkg.version, '3.06.5', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.06.5', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.06.6', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.06.6', 'manifest ' + manifest.version);
         assert.ok(manifest.notes.includes('SINHALA STT'), 'notes headline');
         assert.ok(manifest.files.includes('tests/test_v299.js'), 'manifest lists test_v299.js');
     });

@@ -1,7 +1,7 @@
 /* test_v246.js — MovieBox direct-MP4 rescue (resource-position/v2) — offline asserts + RUN_LIVE E2E */
 const fs = require('fs');
 const path = require('path');
-const REPO = path.join(__dirname, '..');   // v3.06.5: relative (was a hardcoded /home/z/… path that broke outside the original box)
+const REPO = path.join(__dirname, '..');   // v3.06.6: relative (was a hardcoded /home/z/… path that broke outside the original box)
 let pass = 0, fail = 0;
 const ok = (cond, name) => { if (cond) { pass++; console.log('  ✅', name); } else { fail++; console.log('  ❌', name); } };
 const rd = (f) => fs.readFileSync(path.join(REPO, f), 'utf8');
@@ -18,9 +18,9 @@ ok(vN(man.version) >= 2460, 'manifest >= 2.46.0');
 ok(man.files.includes('tests/test_v246.js') && man.files.includes('moviedex.js'), 'manifest files (test_v246 + moviedex)');
 ok(vN(man.version) > 2460 || /resource-position\/v2/.test(man.notes), 'manifest notes: resource-position (v2.46 or notes rotated)');
 
-console.log('── identity + signing (v3.06.5: TUI combo default, bot combo fallback) ──');
+console.log('── identity + signing (v3.06.6: TUI combo default, bot combo fallback) ──');
 ok(mv.includes("Buffer.from('76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O', 'base64')"), 'base64 gateway HMAC key (bot style)');
-ok(mv.includes('0xef, 0xa8, 0x91, 0x97, 0x4e, 0xec, 0xd3, 0x14'), 'OLD hex key as TUI byte-secret (v3.06.5: MovieBox-Tui combo)');
+ok(mv.includes('0xef, 0xa8, 0x91, 0x97, 0x4e, 0xec, 0xd3, 0x14'), 'OLD hex key as TUI byte-secret (v3.06.6: MovieBox-Tui combo)');
 ok(mv.includes('50020126'), 'version_code 50020126 (bot style)');
 ok(mv.includes('4.0.02.0831.03'), 'version_name 4.0.02 (bot style)');
 ok(mv.includes('function mbClientBuild'), 'DYNAMIC x-client-build stamp (v3.06.5 — fixed stale constant removed)');
@@ -32,7 +32,7 @@ ok(mv.includes('application/json;charset=UTF-8'), 'charset content-type (bot sty
 ok(mv.includes("'x-play-mode': '2'") && mv.includes("h['x-idle-data'] = '1'") && mv.includes("h['x-family-mode'] = '0'") && mv.includes("h['x-content-mode'] = '0'"), 'play/idle/family/content headers (bot style, v3.06.5 assignment form)');
 ok(mv.includes('region:') && /region: 'NG'/.test(mv), 'identity region NG (bot style) + US (TUI style)');
 
-console.log('── token / registration (v3.06.5: bootstrap OUT — it 406s everything live) ──');
+console.log('── token / registration (v3.06.6: bootstrap OUT — it 406s everything live) ──');
 ok(!mv.includes('MB_BOOTSTRAP_TOKEN'), 'bootstrap pool token REMOVED (v3.06.5)');
 ok(mv.includes('moviedexUserToken'), 'settings.json persistence key');
 ok(mv.includes('process.env.MB_USER_TOKEN'), 'env token override');
@@ -54,7 +54,7 @@ ok(mv.includes('function mbPosRows'), 'mbPosRows: TUI → old → style-flip (v3
 ok(mv.includes('perPage=20&all=0&pagerMode=0&resolution='), 'resource list params (perPage 20 = server cap)');
 ok(mv.includes('[1080, 720, 480, 360].map'), 'per-resolution fetch');
 ok(mv.includes('it.vipInfo?.requireMemberType === 1') && mv.includes('VIP-only'), 'VIP rows skipped honestly');
-ok(mv.includes('rid: String(it.resourceId)') && mv.includes("stub: String(it.resourceLink || it.url || '')"), 'row.direct carries resourceId + stub link (v3.06.5)');
+ok(mv.includes('rid: String(it.resourceId)') && mv.includes("link: String(it.resourceLink || it.url || '')"), 'row.direct carries resourceId + own link (v3.06.6 row-link-first)');
 ok(mv.includes('for (const r of [...directRows, ...dashRows])'), 'combinedRows: direct wins per height');
 ok(mv.includes('if (row.direct) return directDownload(row,'), 'downloadDash entry → directDownload');
 ok(mv.includes("'User-Agent': 'okhttp/4.12.0'") && mv.includes("'Accept-Encoding': 'identity'"), 'CDN fetch headers');
