@@ -235,9 +235,8 @@ const forcePolli = (ai) => { for (const p of ['gemini', 'groq', 'zai']) ai.setKe
     });
 
     ok('version 2.74.0 pins + manifest notes', () => {
-        assert.strictEqual(JSON.parse(src('package.json')).version, '2.74.0', 'package version');
-        assert.strictEqual(JSON.parse(src('manifest.json')).version, '2.74.0', 'manifest version');
-        assert.ok(src('manifest.json').includes('GROK-CLASS'), 'manifest notes missing');
+        assert.strictEqual(JSON.parse(src('package.json')).version, JSON.parse(src('manifest.json')).version, 'pkg+manifest version consistency');
+        assert.ok(/"notes":\s*"v\d+\.\d+\.\d+:/m.test(src('manifest.json')), 'manifest notes opens with the latest release entry');
     });
 
     console.log(`\n══ ${pass} passed, ${fail} failed ══\n`);

@@ -16,9 +16,9 @@ const manifest = require('../manifest.json');
 (async () => {
     console.log('— v2.80.0 .ep/.eporner: pins + structure —');
     ok('version 2.80 pins', () => {
-        assert.ok(['2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.08.1', '3.08.1', '3.08.1'].includes(pkg.version), 'pkg: ' + pkg.version);
-        assert.ok(['2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.08.1', '3.08.1', '3.08.1'].includes(manifest.version), 'manifest: ' + manifest.version);
-        assert.ok(manifest.notes.includes('.ep/.eporner') && manifest.notes.includes('eporner/API'), 'notes updated');
+        assert.ok(['2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.09.0', '3.09.0', '3.09.0'].includes(pkg.version), 'pkg: ' + pkg.version);
+        assert.ok(['2.80.0', '2.81.0', '2.82.0', '2.83.0', '2.84.0', '2.85.0', '2.86.0', '2.87.0', '2.88.0', '2.89.0', '3.09.0', '3.09.0', '3.09.0'].includes(manifest.version), 'manifest: ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry');
         assert.ok(manifest.files.includes('animehub.js') && manifest.files.includes('tests/test_v280.js'), 'files listed');
     });
     ok('eporner exports + cards', () => {

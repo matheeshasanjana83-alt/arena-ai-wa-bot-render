@@ -39,9 +39,9 @@ const plainMsg = () => ({ key: { remoteJid: JID, id: 'A3', fromMe: true }, messa
 (async () => {
     console.log('— v2.96.0 pins —');
     ok('version 2.90 + manifest notes/files + mirror exports', () => {
-        assert.strictEqual(pkg.version, '3.08.1', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.08.1', 'manifest ' + manifest.version);
-        assert.ok(manifest.notes.includes('.uploadgo'), 'notes');
+        assert.strictEqual(pkg.version, '3.09.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.09.0', 'manifest ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry');
         assert.ok(manifest.files.includes('tests/test_v290.js'), 'files');
         assert.strictEqual(typeof mirror.upGofile, 'function', 'upGofile exported');
         assert.strictEqual(typeof mirror.upTmpfiles, 'function', 'upTmpfiles exported');

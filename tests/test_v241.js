@@ -120,10 +120,10 @@ ok('.forward dispatch + runJob', src.includes("runJob(() => handleForward(send, 
 ok('.setting panel untouched (1-9)', src.includes("'1 | Mode: All (Public)'"));
 
 const cap = bot.modeCaption();
-ok('panel: title + sections', cap.includes('BOT MODE PANEL') && cap.includes('*BOT MODES*') && cap.includes('*AI & TOOLS*') && cap.includes('*AI CHAT MODES*'));
+ok('panel: title + sections', cap.includes('ᴍᴏᴅᴇ ᴘᴀɴᴇʟ') && cap.includes('ʙᴏᴛ ᴍᴏᴅᴇs') && cap.includes('ᴀɪ & ᴛᴏᴏʟs') && cap.includes('ᴀɪ ᴄʜᴀᴛ ᴍᴏᴅᴇs'));
 ok('panel: all 12 option labels', ['Public Mode', 'Private Mode', 'Inbox Only', 'Groups Only', 'Enable AI Chat', 'Disable AI Chat', 'AI: Inbox Public (Everyone)', 'AI: Inbox Self (Owner Only)', 'AI: Inbox Private (Others Only)', 'AI: Groups Only (Everyone)', 'AI: All (Inbox + Group + Bot)', 'AI: All Public (No Bot Reply)'].every((t) => cap.includes(t)));
 ok('panel: numbering exact (1|…4|, 5|, 11|-16|)', ['*1 |* Public', '*2 |* Private', '*3 |* Inbox', '*4 |* Groups', '*5 |* Enable', '*6 |* Disable', '*11 |*', '*16 |*'].every((t) => cap.includes(t)));
-ok('panel: current state rows', cap.includes('WORK TYPE') && cap.includes('AI CHAT'));
+ok('panel: current state rows', cap.includes('ᴡᴏʀᴋ') && cap.includes('ᴀɪ ᴄʜᴀᴛ'));
 
 // ═══ 4) E2E — .mode panel + numbered apply + panel refresh ═══
 console.log('\n— E2E: .mode panel —');
@@ -131,14 +131,14 @@ fs.writeFileSync(SETF, JSON.stringify({ chats: 'private', aiChat: false }, null,
 SENT.length = 0;
 await run(mk('.mode'));
 const MID = 's' + SENT.length;   // panel card id (fake send ids — last send = the panel)
-ok('panel sent (no arg)', /BOT MODE PANEL/.test(lastText()));
+ok('panel sent (no arg)', /ᴍᴏᴅᴇ ᴘᴀɴᴇʟ/.test(lastText()));
 ok('panel shows current: PRIVATE + AI OFF', lastText().includes('PRIVATE') && lastText().includes('OFF'));
 SENT.length = 0;
 await run(mk('1'));   // 🔒 v2.58: bare digit (no quote) → NOTHING (user bug: menu එකට reply නොකර '1' ගැහුවාම panel open වුණා)
 ok('v2.58: bare 1 (no quote) → silence', SENT.length === 0);
 await run(mk('1', { ctx: { stanzaId: MID } }));   // panel card එකට reply → public
 ok('quoted 1 → mode public', guard.chatMode() === 'public');
-ok('confirm + panel refresh (2 sends)', SENT.length >= 2 && /✅/.test(String(SENT[0].content.text)) && /BOT MODE PANEL/.test(lastText()));
+ok('confirm + panel refresh (2 sends)', SENT.length >= 2 && /✅/.test(String(SENT[0].content.text)) && /ᴍᴏᴅᴇ ᴘᴀɴᴇʟ/.test(lastText()));
 const MID2 = 's' + SENT.length;   // refreshed panel card id
 SENT.length = 0;
 await run(mk('6', { ctx: { stanzaId: MID2 } }));

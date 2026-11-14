@@ -55,9 +55,9 @@ const slowUrl = () => `http://127.0.0.1:${PORT}/slow/x.bin`;
 (async () => {
     console.log('— v2.89.0 pins —');
     ok('version 2.90 (pins roll forward) + v2.89 notes still present + exports', () => {
-        assert.strictEqual(pkg.version, '3.08.1', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.08.1', 'manifest ' + manifest.version);
-        assert.ok(manifest.notes.includes('DOWNLOAD LANE NEVER-SILENT'), 'notes');
+        assert.strictEqual(pkg.version, '3.09.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.09.0', 'manifest ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry');
         assert.ok(manifest.files.includes('tests/test_v289.js'), 'files');
         assert.strictEqual(typeof bot._dlQueue, 'function', '_dlQueue exported');
         assert.strictEqual(typeof bot._dlDepth, 'function', '_dlDepth exported');

@@ -43,7 +43,6 @@ const features = require('./features');
 const tools = require('./tools');
 const moviedex = require('./moviedex');
 const ui = require('./ui');   // 🧊 v3.08 — PREMIUM UI ENGINE: WhatsApp native interactive cards (single_select / cta_url, Baileys 7)
-const { THIN, sm, sect } = require('./style');   // v3.08 premium kit (BRAND/foot/cut already above)
 const pollinations = require('./pollinations');   // 🌸 v3.07 — baked default key visibility (auto-chat gate → zero-key silent bug fix)
 const animehub = require('./animehub');   // 🎌 v2.75 AniWorld + 🔞 NSFW (hentai-api style)
 const terabox = require('./terabox');   // ☁️ v2.84 TeraBox (jsToken → share/list → dlink)
@@ -52,7 +51,7 @@ const cinesite = require('./cinesite');   // 🍿 v3.01 .cinesubz + .cineru — 
 const animepahe = require('./animepahe');   // 🎌 v3.05 .animepahe — anime search → episodes → quality → FILE (Consumet API ONLY — hardcoded default base, .setconsumet override)
 const antibug = require('./antibug');
 const antispam = require('./antispam');
-const { BRAND, foot, cut } = require('./style');
+const { BRAND, foot, cut, sect, THIN, sm, head, chip, row, close } = require('./style');   // 🧊 v3.09 premium frame kit merged here
 const reminders = require('./reminders');
 
 const AUTH = path.join(__dirname, 'auth');
@@ -165,7 +164,9 @@ function getText(m) {
     return (x?.conversation || x?.extendedTextMessage?.text || x?.imageMessage?.caption || x?.documentMessage?.caption || x?.videoMessage?.caption || '').trim();
 }
 
-const HELP = `*◈ ＢＡＴＩＳＴＡ  ＭＤ ◈* — commands
+const HELP = `${head()}
+
+▢ ᴄᴏᴍᴍᴀɴᴅꜱ ▸ කෙටි ලැයිස්තුව (සම්පූර්ණ එක — *.menu*)
 
 📥 *.download <link>* (*.dl*) · *.mediafire* · *.mega* · *.gdrive* · *.terabox* · *.metdn* · *.video* (yt) · *.song* (yt) · *.apk <app>*
 📥 *.mirror <link>* · *.gitclone user/repo*
@@ -483,9 +484,9 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                 if (c === '.update') { await handleUpdate(send, jid, msg, rest[0] === 'force'); continue; }
                 if (c === '.version') {
                     const cur = updater.localInfo();
-                    let t = `🤖 *ＢＡＴＩＳＴＡ  ＭＤ* v${cur.version}${cur.sha ? ' (' + cur.sha.slice(0, 7) + ')' : ''}`;
-                    try { const ch = await updater.check(); t += ch.upToDate ? '\n✅ අලුත්ම version එක' : `\n🆕 Update එකක් තියෙනවා: v${ch.latest.manifest.version}\n➡️ *.update* ගහන්න`; } catch (e) { t += '\n(update check fail: ' + e.message + ')'; }
-                    t += `\n🔄 auto-update: ${autoupdate.statusText()}`;
+                    let t = `${head('🤖 Version')}\n\n${chip('Version', `v${cur.version}${cur.sha ? ' · ' + cur.sha.slice(0, 7) : ''}`)}`;
+                    try { const ch = await updater.check(); t += `\n${chip('Latest', ch.upToDate ? '✅ අලුත්ම version එකම තමයි' : `🆕 v${ch.latest.manifest.version} — *.update* ගහන්න`)}`; } catch (e) { t += `\n${chip('Check', 'fail · ' + e.message)}`; }
+                    t += `\n${chip('Auto-Update', autoupdate.statusText())}`;
                     await send(jid, { text: t }, { quoted: msg }); continue;
                 }
                 if (c === '.net' || c === '.netcheck') {
@@ -643,19 +644,17 @@ function menuCaption(name) {
     const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
     const ram = Math.round(process.memoryUsage().rss / 1048576);
     return [
-        '*◈ ＢＡＴＩＳＴＡ  ＭＤ · MENU ◈*',
-        `👋 ʜɪ *${String(name || 'Boss').slice(0, 25)}*`,
+        head(),   // ⌯ ━━ ＢＡＴＩＳＴＡ  ＭＤ ━━ ⌯
         '',
-        '╭─〔 ⚡ *INFO* 〕',
-        `│ ⚡ v${v} · ⏱ ${fmtUptime(process.uptime())}`,
-        `│ 💾 ${ram} MB · 🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'}`,
-        '╰────────────⊷',
+        chip('Hi', `*${String(name || 'Boss').slice(0, 25)}*`),
+        chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`),
+        chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`),
         '',
-        '╭─〔 📂 *CATEGORIES* 〕',
-        ...CATS.map(([e, n], i) => `│ *${i + 1}* ┃ ${e} ${n}`),
-        '╰────────────⊷',
+        sect('📂 Categories'),
+        ...CATS.map(([e, n], i) => ' ' + row(i + 1, `${e} ${sm(n.toUpperCase())}`)),
+        close(20),
         '',
-        foot('🔢 number එකක් reply කරන්න'),
+        foot('🔢 කාණ්ඩ අංකයක් *reply* කරන්න'),
     ].join('\n');
 }
 async function handleMenu(send, jid, msg, arg) {
@@ -664,7 +663,10 @@ async function handleMenu(send, jid, msg, arg) {
         const cat = CATS[n - 1];
         if (!cat) return send(jid, { text: `❌ 1 – ${CATS.length} අතර number එකක් ගහන්න` }, { quoted: msg });
         if (!cat[2]) return sendAlive(send, jid, msg, 'alive');
-        return send(jid, { text: cat[2].replace('{MAX}', human(maxBytes())) + '\n' + foot('↩️ *.menu*') }, { quoted: msg });
+        // 🧊 v3.09: category card = premium frame (╭─〈 ᴛɪᴛʟᴇ 〉─╮ … ╰─〈 ʙᴀᴛɪꜱᴛᴀ ᴍᴅ 〉╯) — body එක එකම data, පේන්න විතරක් අලුත්
+        const lines = cat[2].split('\n');
+        const title = (lines.shift() || '').replace(/\*/g, '');   // first bold line = '📥 DOWNLOAD' → section header
+        return send(jid, { text: [sect(title), '', ...lines, '', close(18), '', foot('↩️ *.menu*')].join('\n').replace('{MAX}', human(maxBytes())) }, { quoted: msg });
     }
     // 🧊 v3.08 interactive-first: native card (photo header + tap-to-open category list) → classic photo+caption fallback
     const bm = menuMedia();
@@ -673,7 +675,7 @@ async function handleMenu(send, jid, msg, arg) {
     const catRows = CATS.map(([e, nm], i) => ({ title: `${i + 1} · ${e} ${nm}`, desc: (CATS[i][2] || '').split('\n').find((l) => /^✦ \./.test(l)) || 'commands', id: `.menu ${i + 1}` }));
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · MENU`,
-        text: `👋 ʜɪ *${String(msg.pushName || 'Boss').slice(0, 25)}*\n\n⚡ v${v} · ⏱ ${fmtUptime(process.uptime())} · 💾 ${ram} MB\n🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️ anti-ban ON`,
+        text: `${chip('Hi', `*${String(msg.pushName || 'Boss').slice(0, 25)}*`)}\n${chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`)}\n${chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`)}\n\n${sect('📂 Menu')} — පහළ button එකෙන් තෝරන්න 👇`,
         image: bm?.image, selectTitle: '📂 Categories', sections: ui.sectionsOf(catRows, 'MENU'),
     });
     if (sentInt?.key?.id) { menuState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
@@ -690,40 +692,32 @@ function settingCaption() {
     const s = readSettings(), k = ai.getKeys(), a = antibug.cfg(), m = ai.stats();
     const oo = (v) => (v ? 'on' : 'off');
     return [
-        '🎀 ≡ *BOT SETTINGS PANEL* ≡ 🍁',
+        head('⚙️ Settings Panel'),
         '',
-        '🍀 | *BOT NAME:* ＢＡＴＩＳＴＡ  ＭＤ 🍁',
-        `🍀 | *VERSION:* v${verStr()}`,
-        `🍀 | *WORK TYPE:* ${guard.chatMode()}`,
-        `🍀 | *AI KEYS:* Gemini ${k.gemini ? '✅' : '❌'} · Groq ${k.groq ? '✅' : '❌'} · Z.ai ${k.zai ? '✅' : '❌'}`,
-        `🧠 | *AI MEMORY:* ${m.msgs} msgs · ${m.chats} chats · TTL ${m.ttlDays}d`,
-        `🤖 | *AI PROVIDER:* ${ai.getProvider() ? ai.getProvider().toUpperCase() : 'AUTO (BATISTA multi-engine)'}`,
-        `🧰 | *AI TOOLS:* ${ai.getTools() ? '✅ ON' : '⛔ OFF'} (smart connector)`,
-        `🍀 | *ANTI-BUG:* ${oo(a.on)}`,
-        `🍀 | *AUTO REPORT:* ${a.report ? 'on ×' + a.reportCount : 'off'}`,
-        `🍀 | *AUTO BLOCK:* ${oo(a.block)}`,
-        `🍀 | *AUTO UPDATE:* ${oo(s.autoUpdate !== false)}`,
-        `🍀 | *MAX FILE:* ${maxMB()} MB`,
-        `🍀 | *AUTO REACT:* ${oo(reactOn())}`,
-        `🍀 | *PROXY:* ${oo(!!s.proxy)}`,
+        `▢ *BOT NAME:* ＢＡＴＩＳＴＡ  ＭＤ 🍁`,
+        chip('Version', `v${verStr()} · ${guard.chatMode().toUpperCase()}`),
+        chip('Keys', `Gemini ${k.gemini ? '✅' : '❌'} · Groq ${k.groq ? '✅' : '❌'} · Z.ai ${k.zai ? '✅' : '❌'}`),
+        chip('Memory', `${m.msgs} msgs · ${m.chats} chats · TTL ${m.ttlDays}d`),
+        chip('Provider', ai.getProvider() ? ai.getProvider().toUpperCase() : 'AUTO (BATISTA multi-engine)'),
+        chip('Tools', `${ai.getTools() ? '✅ on' : '⛔ off'} · anti-bug ${oo(a.on)} · report ${a.report ? 'on ×' + a.reportCount : 'off'}`),
+        chip('Bot', `update ${oo(s.autoUpdate !== false)} · max ${maxMB()} MB · react ${oo(reactOn())} · proxy ${oo(!!s.proxy)}`),
         '',
-        '⟶ *SELECT OPTION* 🌸',
-        '',
-        '» 🔧 *MAIN SETTINGS* 👇',
+        `${sect('🔧 Main Settings')} 👇`,
         '1 | Mode: All (Public)',
         '2 | Mode: Self (Private)',
         '',
-        '» 🛡️ *ANTI-BUG* 👇',
+        `${sect('🧬 Anti-Bug')} 👇`,
         `3 | Anti-Bug: ${a.on ? 'ON' : 'OFF'}`,
         `4 | Auto Report: ${a.report ? 'ON' : 'OFF'}`,
         `5 | Report Count: ×${a.reportCount} → next`,
         `6 | Auto Block: ${a.block ? 'ON' : 'OFF'}`,
         '',
-        '» ⚙️ *BOT* 👇',
+        `${sect('⚙️ Bot')} 👇`,
         `7 | Auto-Update: ${s.autoUpdate !== false ? 'ON' : 'OFF'}`,
         `8 | Max File: ${maxMB()} MB → next`,
         `9 | Auto React: ${reactOn() ? 'ON' : 'OFF'}`,
         `10 | AI Provider: ${ai.getProvider() ? ai.getProvider().toUpperCase() : 'AUTO'} → next`,
+        close(14),
         '',
         foot('🔢 option එකේ number එක reply කරන්න'),
     ].join('\n');
@@ -781,14 +775,16 @@ function nowLK() {
 }
 function aliveCaption(kind = 'online') {
     const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
-    const head = kind === 'updated' ? '🔄 ᴜᴘᴅᴀᴛᴇᴅ' : kind === 'alive' ? '💠 sᴛɪʟʟ ʜᴇʀᴇ' : '🟢 ᴏɴʟɪɴᴇ';
+    const state = kind === 'updated' ? '🔄 updated ✅' : kind === 'alive' ? '💠 still here' : '🟢 online';
     return [
-        `*◈ ＢＡＴＩＳＴＡ  ＭＤ ◈*  ${head}`,
-        `┊ ⚡ v${v} · ⏱ ${fmtUptime(process.uptime())}`,
-        `┊ 🕒 ${nowLK()}  ·  🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'}`,
-        `┊ 🔒 private  ·  🛡️ anti-ban  ·  🧬 anti-bug ${antibug.cfg().on ? 'ON' : 'OFF'}`,
+        head(),   // ⌯ ━━ ＢＡＴＩＳＴＡ  ＭＤ ━━ ⌯
+        chip('Status', state),
+        chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`),
+        chip('Time', `🕒 ${nowLK()}`),
+        chip('Host', `${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🔒 private`),
+        chip('Shield', `🛡️ anti-ban · anti-bug ${antibug.cfg().on ? 'ON' : 'OFF'}`),
         foot('*.menu* — commands'),
-    ].join('\n');
+    ].join('\n');   // 🧊 v3.09: premium frame, compact 9-line card (menu deck photo + brand header + chip block)
 }
 async function sendAlive(send, jid, quoted, kind) {
     const caption = aliveCaption(kind);
@@ -867,30 +863,29 @@ function modeCaption() {
     const cur = guard.chatMode(), aiOn = guard.aiChatOn(), aim = guard.aiMode();
     const mark = (x) => (x ? ' ✅' : '');
     return [
-        '🛡 ≡ *BOT MODE PANEL* ≡ 🍁',
+        head('🛡️ Mode Panel'),
         '',
-        `🍀 | *WORK TYPE:* ${cur.toUpperCase()}`,
-        `🍀 | *AI CHAT:* ${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})`,
+        chip('Work', cur.toUpperCase()),
+        chip('AI Chat', `${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})`),
         '',
-        '⟶ *SELECT OPTION* 🌸',
-        '',
-        '» 🌐 *BOT MODES* 👇',
+        `${sect('🌐 Bot Modes')} 👇`,
         `*1 |* Public Mode${mark(cur === 'public')} — හැමොටම use කරන්න පුළුවන්`,
         `*2 |* Private Mode${mark(cur === 'private')} — මට විතරයි`,
         `*3 |* Inbox Only${mark(cur === 'inbox')} — inbox වල විතරයි`,
         `*4 |* Groups Only${mark(cur === 'groups')} — groups වල විතරයි`,
         '',
-        '» 🤖 *AI & TOOLS* 👇',
+        `${sect('🤖 AI & Tools')} 👇`,
         `*5 |* Enable AI Chat${mark(aiOn)}`,
         `*6 |* Disable AI Chat${mark(!aiOn)}`,
         '',
-        '» 🤖 *AI CHAT MODES* 👇',
+        `${sect('💬 AI Chat Modes')} 👇`,
         `*11 |* AI: Inbox Public (Everyone)${mark(aim === 'inbox_public')}`,
         `*12 |* AI: Inbox Self (Owner Only)${mark(aim === 'inbox_self')}`,
         `*13 |* AI: Inbox Private (Others Only)${mark(aim === 'inbox_private')}`,
         `*14 |* AI: Groups Only (Everyone)${mark(aim === 'groups_only')}`,
         `*15 |* AI: All (Inbox + Group + Bot)${mark(aim === 'all')}`,
         `*16 |* AI: All Public (No Bot Reply)${mark(aim === 'all_public')}`,
+        close(14),
         '',
         foot('🔢 option එකේ number එක reply කරන්න'),
     ].join('\n');
@@ -923,7 +918,7 @@ async function handleMode(send, jid, msg, arg) {
     const bm = menuMedia();
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · MODE`,
-        text: `🛡 ≡ *BOT MODE PANEL* ≡ 🍁\n\n🍀 | *WORK TYPE:* ${cur.toUpperCase()}\n🍀 | *AI CHAT:* ${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})\n\n⟶ modes පහළ button එකේ 👇`,
+        text: `${chip('Work', cur.toUpperCase())}\n${chip('AI Chat', `${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})`)}\n\n${sect('🛡️ Modes')} — පහළ button එකෙන් තෝරන්න 👇`,
         image: bm?.image, selectTitle: '🛡️ Modes', sections: ui.sectionsOf(rows, 'MODES'),
     });
     if (sentInt?.key?.id) { modeState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
@@ -1618,7 +1613,7 @@ async function handleDownload(send, jid, msg, link, siteTag, cap) {
 
 process.on('unhandledRejection', (e) => log('unhandled: ' + (e?.message || e)));
 process.on('uncaughtException', (e) => log('uncaught: ' + e.message));
-module.exports = { _agentTick: agentTick, AGENT_MSG, handleDownload, getText, onMessages, replyJid, ME, aliveCaption, OWNER_CMDS, modeCaption, handleForward, maybeAiReply, handleAI, _aiLast: aiLast, _groupLog: groupLog, _glogPush: glogPush, SITE_DL, _setMediaDownloader: (f) => { mediaDownloader = f; }, _setSock: (x) => { SOCK = x; }, _dlQueue: dlQueue, _dlDepth: () => dlDepth, _dlBudgetMin: dlBudgetMin, _menuMedia: menuMedia, _deckList: deckList, _deckReset: () => { try { fs.rmSync(MENU_IDX, { force: true }); } catch { } } };
+module.exports = { _agentTick: agentTick, AGENT_MSG, handleDownload, getText, onMessages, replyJid, ME, aliveCaption, OWNER_CMDS, modeCaption, menuCaption, settingCaption, handleForward, maybeAiReply, handleAI, _aiLast: aiLast, _groupLog: groupLog, _glogPush: glogPush, SITE_DL, _setMediaDownloader: (f) => { mediaDownloader = f; }, _setSock: (x) => { SOCK = x; }, _dlQueue: dlQueue, _dlDepth: () => dlDepth, _dlBudgetMin: dlBudgetMin, _menuMedia: menuMedia, _deckList: deckList, _deckReset: () => { try { fs.rmSync(MENU_IDX, { force: true }); } catch { } } };
 if (require.main === module) {
     console.log('🚀 ＢＡＴＩＳＴＡ  ＭＤ starting...');
     require('./media').checkUpdate(true).catch(() => { });   // yt-dlp fresh → FB "Cannot parse data" / YT format errors fix (max 1 check/hour)

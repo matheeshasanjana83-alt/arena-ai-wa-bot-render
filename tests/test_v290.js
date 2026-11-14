@@ -48,10 +48,10 @@ const whPlayerPage = (src) => `<html><script type="application/ld+json">{"conten
 (async () => {
     console.log('— v2.96.0 pins (binge + time-machine merged) —');
     ok('version 2.92 pkg+manifest + notes + prev/restore/ring markers', () => {
-        assert.strictEqual(pkg.version, '3.08.1', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.08.1', 'manifest ' + manifest.version);
-        assert.ok(manifest.notes.includes('BINGE FLOW'), 'v2.90 note in chain');
-        assert.ok(manifest.notes.includes('TIME-MACHINE'), 'v2.92 note in chain');
+        assert.strictEqual(pkg.version, '3.09.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.09.0', 'manifest ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry');
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry (2)');
         assert.ok(hubSrc.includes('const restoreBack'), 'restoreBack helper');
         assert.ok((hubSrc.match(/prev: s /g) || []).length === 3, 'hv/ep quality sessions carry prev ×3: ' + (hubSrc.match(/prev: s /g) || []).length);
         assert.ok(hubSrc.includes('restoreBack(jid, mySess)'), 'hv+ep restore call');

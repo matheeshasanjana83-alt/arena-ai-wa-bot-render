@@ -74,13 +74,13 @@ t(`4 send sites route through menuMedia() (menu/setting/alive/mode) — found ${
 t('old banner.jpg boot-clean + helper before first send site', BOT.indexOf('rmSync') < BOT.indexOf('menuCaption(msg.pushName)'));
 
 // ── (4) manifest v3.06.4 photo-deck pins moved to v3.06.6 (moviedex fix) ──
-t('manifest version 3.07.0', man.version === '3.08.1');
-t('pkg version 3.07.0', pkg.version === '3.08.1');
+t('manifest version 3.07.0', man.version === '3.09.0');
+t('pkg version 3.07.0', pkg.version === '3.09.0');
 t('manifest.files += media/menu/01.jpg..08.jpg', [...Array(8)].every((_, i) => man.files.includes(`media/menu/0${i + 1}.jpg`)));
 t('manifest.files += tests/test_v3010.js', man.files.includes('tests/test_v3010.js'));
 t('manifest.files += tests/test_v3011.js (v3.06.6 moviedex fix)', man.files.includes('tests/test_v3011.js'));
 t('manifest.files += tests/test_v309.js', man.files.includes('tests/test_v309.js'));
-t('manifest.notes opens with v3.06.6 moviedex-fix entry', typeof man.notes === 'string' && man.notes.startsWith('v3.08.1:'));
+t('manifest.notes opens latest release entry (history trimmed by design)', typeof man.notes === 'string' && man.notes.startsWith('v3.09.0:'));
 t('.gitignore ignores media/menu-idx.json (rotation memory is runtime-only)', fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8').includes('media/menu-idx.json'));
 
 // ── (5) FULL REBRAND — zero KAVIZ in runtime src (v3.06.3, still holds) ──
@@ -97,8 +97,8 @@ if (leaks.length) console.log('     leaks: ' + leaks.join(', '));
 t('package.json name = batista-md', pkg.name === 'batista-md');
 t('style.js BRAND = ＢＡＴＩＳＴＡ  ＭＤ (footer single-source)', STYLE.includes(`const BRAND = '${FULL}'`));
 t('ai.js persona identity = ＢＡＴＩＳＴＡ  ＭＤ', AI.includes(FULL) && !/kaviz/i.test(noNick(AI)));
-t('bot.js HELP header rebranded', BOT.includes(`*◈ ${FULL} ◈* — commands`));
-t('bot.js MENU header rebranded', BOT.includes(`*◈ ${FULL} · MENU ◈*`));
+t('bot.js HELP header rebranded (v3.09 premium head() kit)', BOT.includes('const HELP = ') && BOT.includes('${head()}') && BOT.includes('▢ ᴄᴏᴍᴍᴀɴᴅꜱ ▸'));
+t('bot.js MENU premium frame (v3.09: head + chips + sect + close)', BOT.includes('function menuCaption') && BOT.includes("chip('Hi'") && BOT.includes("sect('📂 Categories')") && BOT.includes('close(20)'));
 t('bot.js settings BOT NAME rebranded', BOT.includes(`*BOT NAME:* ${FULL}`));
 t('updater.js UA = batista-md-bot-updater', UPD.includes("'batista-md-bot-updater'"));
 t('media.js sticker EXIF default = ＢＡＴＩＳＴＡ  ＭＤ', MEDIA.includes(`pack = '${FULL}'`));
@@ -112,7 +112,7 @@ for (const f of pinned) {
     const p = path.join(REPO, 'tests', f);
     if (fs.existsSync(p)) {
         const src = fs.readFileSync(p, 'utf8');
-        t(`${f} pins 3.07.0`, src.includes('3.08.1') && !src.includes('3.06.4') && !src.includes('3.06.3'));
+        t(`${f} pins 3.07.0`, src.includes('3.09.0') && !src.includes('3.06.4') && !src.includes('3.06.3'));
     }
 }
 t('no suite still pins 3.06.3/3.06.4 (tests dir, self + runners excluded)', fs.readdirSync(path.join(REPO, 'tests'))

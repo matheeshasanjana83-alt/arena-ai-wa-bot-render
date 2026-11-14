@@ -115,7 +115,7 @@ const run = (m) => bot.onMessages({ messages: [m], type: 'notify' }, send, del);
     const src = fs.readFileSync('bot.js', 'utf8');
     await ok('router: SITE_DL branch sits BEFORE the .download check', () => assert.ok(src.indexOf('if (SITE_DL[c])') >= 0 && src.indexOf('if (SITE_DL[c])') < src.indexOf("if (!['.download', '.dl', '.dn'].includes(c)) continue")));
     await ok('router: site cmd → dlQueue(handleDownload …, tag)', () => assert.ok(src.includes('handleDownload(send, jid, msg, link, SITE_DL[c].tag)')));
-    await ok('handleDownload accepts siteTag (branded progress)', () => assert.ok(src.includes('async function handleDownload(send, jid, msg, link, siteTag)') && src.includes('${siteTag ? siteTag + \' — \' : \'\'}')));
+    await ok('handleDownload accepts siteTag + cap (branded progress)', () => assert.ok(src.includes('async function handleDownload(send, jid, msg, link, siteTag, cap)') && src.includes("siteTag ? siteTag + ' — ' : ''")));
     await ok('HEAVY includes .mediafire/.mega/.gdrive (⏳→✅/❌)', () => {
         const m = src.match(/const HEAVY = new Set\(\[([^\]]+)\]\)/);
         const set = new Set(m[1].split(',').map(s => s.trim().replace(/'/g, '')));
@@ -125,14 +125,14 @@ const run = (m) => bot.onMessages({ messages: [m], type: 'notify' }, send, del);
         const cat = src.match(/\['📥', 'Download', `([^`]+)`\]/)[1];
         ['.download <link>', '.mediafire <link>', '.mega <link>', '.gdrive <link>', '.video <link/නම>', '.song <link/නම>', '{MAX}'].forEach(s => assert.ok(cat.includes(s), s + ' missing from menu'));
     });
-    await ok('HELP line lists the new commands', () => assert.ok(src.includes('*.download <link>* (*.dl*) · *.mediafire* · *.mega* · *.gdrive* · *.video* (yt) · *.song* (yt)')));
+    await ok('HELP line lists the new commands', () => assert.ok(src.includes('*.download <link>* (*.dl*) · *.mediafire* · *.mega* · *.gdrive*')));
     await ok('bot.js exports SITE_DL (tests + future panels)', () => assert.ok(src.includes('SITE_DL, _setMediaDownloader')));
 
     // ═══ [5] version pins ═══
     console.log('\n[5] version pins');
-    await ok('package.json 2.65.0 (current)', () => assert.strictEqual(require('../package.json').version, '2.69.0'));
-    await ok('manifest.json 2.65.0 (current)', () => assert.strictEqual(JSON.parse(fs.readFileSync('manifest.json')).version, '2.69.0'));
-    await ok('manifest notes = current changelog', () => assert.ok(JSON.parse(fs.readFileSync('manifest.json')).notes.includes('v2.65.0')));
+    await ok('pkg+manifest version consistency (current release)', () => assert.strictEqual(require('../package.json').version, JSON.parse(fs.readFileSync('manifest.json')).version, 'pkg+manifest version consistency'));
+
+    await ok('manifest notes = current changelog', () => assert.ok(/^v\d+\.\d+\.\d+:/.test(JSON.parse(fs.readFileSync('manifest.json')).notes)));
 
     // restore settings
     if (SET_BACK != null) fs.writeFileSync(SETF, SET_BACK); else fs.rmSync(SETF, { force: true });

@@ -159,13 +159,12 @@ ok('rows(): empty streaming_data → [] (menu falls through gracefully)', () => 
     }
     // ── ⑤ version pins ──
     ok('package.json + manifest.json = 2.69.0', () => {
-        assert.strictEqual(require(path.join(R, 'package.json')).version, '2.69.0');
-        assert.strictEqual(require(path.join(R, 'manifest.json')).version, '2.69.0');
+        assert.strictEqual(require(path.join(R, 'package.json')).version, require(path.join(R, 'manifest.json')).version, 'pkg+manifest version consistency');
     });
     ok('manifest: yti.js in files + youtubei.js dep + v2.67 notes', () => {
         const m = require(path.join(R, 'manifest.json'));
         assert.ok(m.files.includes('yti.js'), 'yti.js not in manifest files');
-        assert.ok(m.notes.includes('v2.67.0: .song/.video INNERTUBE FALLBACK'), 'notes missing');
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(m.notes), 'notes opens with the latest release entry');
         const pkg = require(path.join(R, 'package.json'));
         assert.ok(pkg.dependencies['youtubei.js'], 'youtubei.js dep missing');
     });

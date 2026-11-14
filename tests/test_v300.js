@@ -35,9 +35,9 @@ const polliSrc = fs.readFileSync(__dirname + '/../pollinations.js', 'utf8');
 (async () => {
     console.log('— v3.05.0 pins + source markers —');
     ok('version 3.05.0 pkg+manifest · notes headline · manifest lists test_v300.js', () => {
-        assert.strictEqual(pkg.version, '3.08.1', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.08.1', 'manifest ' + manifest.version);
-        assert.ok(manifest.notes.includes('SINHALA STT V2'), 'notes headline');
+        assert.strictEqual(pkg.version, '3.09.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.09.0', 'manifest ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/m.test(manifest.notes), 'notes headline (latest entry opens notes — history trimmed by design)');
         assert.ok(manifest.files.includes('tests/test_v300.js'), 'manifest lists test_v300.js');
     });
     ok('markers: gpt4oTranscribe seam + GPT4O_SI_PROMPTS + garbageText/hasSinhala + sttText prompt opt', () => {

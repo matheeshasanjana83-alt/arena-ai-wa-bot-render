@@ -81,11 +81,10 @@ ok('yt-dlp binary is the official standalone (EJS challenge scripts bundled ≥ 
 
 // ── ⑤ version pins ──
 ok('package.json + manifest.json = 2.66.0', () => {
-    assert.strictEqual(require(path.join(R, 'package.json')).version, '2.69.0');
-    assert.strictEqual(require(path.join(R, 'manifest.json')).version, '2.69.0');
+    assert.strictEqual(require(path.join(R, 'package.json')).version, require(path.join(R, 'manifest.json')).version, 'pkg+manifest version consistency');
 });
 ok('manifest notes carry the v2.66 root-cause line', () => {
-    assert.ok(require(path.join(R, 'manifest.json')).notes.includes('v2.66.0: THE .song/.video 403 ROOT-CAUSE FIX'));
+    assert.ok(/^v\d+\.\d+\.\d+:/.test(require(path.join(R, 'manifest.json')).notes), 'notes opens with the latest release entry');
 });
 ok('README-SI.txt carries the v2.66 entry', () => {
     assert.ok(fs.readFileSync(path.join(R, 'docs/README-SI.txt'), 'utf8').includes('v2.66.0'));

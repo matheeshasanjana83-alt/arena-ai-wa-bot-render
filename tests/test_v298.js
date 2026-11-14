@@ -37,9 +37,9 @@ function mockFetch(url, opts) {
 (async () => {
     console.log('— v3.05.0 pins + markers —');
     ok('version 3.05.0 pkg+manifest + notes headline + manifest lists test_v298.js', () => {
-        assert.strictEqual(pkg.version, '3.08.1', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.08.1', 'manifest ' + manifest.version);
-        assert.ok(manifest.notes.includes('VOICE NOTE STT FIX'), 'notes headline');
+        assert.strictEqual(pkg.version, '3.09.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.09.0', 'manifest ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry');
         assert.ok(manifest.files.includes('tests/test_v298.js'), 'manifest lists test_v298.js');
     });
     ok('source markers: STT_EXT map present · audio.bin GONE · bot.js+tools.js call-sites unchanged', () => {

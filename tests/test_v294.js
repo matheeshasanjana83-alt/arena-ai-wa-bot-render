@@ -23,9 +23,9 @@ const botSrc = fs.readFileSync(__dirname + '/../bot.js', 'utf8');
 (async () => {
     console.log('— v2.96.0 pins —');
     ok('version 2.94 pkg+manifest + notes + markers', () => {
-        assert.strictEqual(pkg.version, '3.08.1', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.08.1', 'manifest ' + manifest.version);
-        assert.ok(manifest.notes.includes('AI REBRAND'), 'notes headline');
+        assert.strictEqual(pkg.version, '3.09.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.09.0', 'manifest ' + manifest.version);
+        assert.ok(/^v\d+\.\d+\.\d+:/.test(manifest.notes), 'notes opens with the latest release entry');
         assert.ok(aiSrc.includes('👑 OWNER MODE'), 'ai.js owner-mode marker');
         assert.ok(aiSrc.includes('IDENTITY LOCK (highest rule)'), 'ai.js identity-lock marker');
         assert.ok(botSrc.includes('v2.94'), 'bot.js v2.94 marker');
