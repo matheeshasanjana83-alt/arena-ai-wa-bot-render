@@ -76,7 +76,17 @@ const os = require('os');
 // CineSubz/Cineru now live in their own .cinesubz / .cineru commands (cinesite.js) — moviedex is MovieBox-ONLY.
 const { smartFetch } = require('./net');
 const { human, maxMB } = require('./downloader');
-const { BRAND, foot, cut, bar } = require('./style');
+const { BRAND, foot, cut, bar, THIN, sm, sect } = require('./style');
+
+/** 🧊 v3.08 — native interactive single_select card (tap-to-pick) · null/catch → caller keeps the classic text menu */
+async function sendInteractive(ctx, { title, text, image, sections, selectTitle }) {
+    try {
+        if (!ctx?.ui || !ctx?.upload) return null;
+        const content = await ctx.ui.interactiveContent({ jid: ctx.jid, upload: ctx.upload, title, text, footer: foot(), image, sections, selectTitle });
+        if (!content) return null;
+        return await ctx.send(ctx.jid, content, ctx.msg ? { quoted: ctx.msg } : undefined);
+    } catch { return null; }
+}
 
 /** v2.28 brand footer — replaces the old tutorial hint lines (user request).
  *  v3.06.5: single-sourced from style.js BRAND — the old full-width legacy V1 footer survived
@@ -1253,8 +1263,23 @@ function cardText(m, n, rows, subs) {
     return out.filter(Boolean).join('\n');
 }
 
-async function sendCard(send, jid, msg, m, n, rows, subs) {
+async function sendCard(send, jid, msg, m, n, rows, subs, ctx) {
     const text = cardText(m, n, rows, subs);
+    // 🧊 v3.08 ONE premium interactive card — poster media-header + info body + TAP quality list (WhatsApp native list, no number typing) · classic poster+caption stays as the fallback
+    const qRows = (rows || []).slice(0, 10).map((r, i) => ({ title: r.label, desc: r.sizeMB ? '~' + fmtSize(r.sizeMB) : '', id: `.moviedex ${n} ${i + 1}` }));
+    const sbRows = (subs || []).slice(0, 6).map((sb, i) => ({ title: '🗳 ' + subLabel(sb), desc: 'subtitle track', id: `.moviedex ${n} ${(rows || []).length + i + 1}` }));
+    if (ctx?.ui && (qRows.length || sbRows.length)) {
+        let poster = null;
+        try { const pr = await smartFetch(m.poster, { signal: AbortSignal.timeout(8000) }); if (pr.ok) poster = Buffer.from(await pr.arrayBuffer()); } catch { }
+        if (poster && poster.length > 1000) {
+            const sent = await sendInteractive(ctx, {
+                title: cut(m.name, 60) + (m.year ? ` (${m.year})` : ''),
+                text: `⭐ ${m.rating || '—'}${m.duration ? '  ·  ⏱ ' + m.duration : ''}${m.genres?.length ? '  ·  🎭 ' + m.genres.slice(0, 3).join(', ') : ''}\n\n📝 _${cut(String(m.desc || '').trim(), 260) || '—'}_`,
+                image: poster, selectTitle: '🎬 Download', sections: ctx.ui.sectionsOf([...qRows, ...sbRows], 'QUALITY'),
+            });
+            if (sent) return sent;
+        }
+    }
     try {
         if (!m.poster) throw new Error('no poster');
         return await send(jid, { image: { url: m.poster }, caption: text.slice(0, 1000) }, { quoted: msg });
@@ -1597,7 +1622,7 @@ function bridgeReply(jid, qid, digits) {
 
 async function handle(c, ctx) {
     if (c !== '.moviedex' && c !== '.mdx') return false;
-    const { send, jid, msg, rest, react } = ctx;
+    const { send, jid, msg, rest, react, ui, upload } = ctx;
     const arg = rest.join(' ').trim();
     const pick = arg.match(/^(\d{1,3})(?:\s+(next|n))?(?:\s+(\d{1,3}))?(?:\s+(\d{1,3}))?(?:\s+(link|l|next|n))?$/i);
     const isNum = (x) => /^\d+$/.test(x || '');
@@ -1762,14 +1787,14 @@ async function handle(c, ctx) {
         if (subs.length) console.log(`[moviedex] 🗨 movie: ${subs.length} subtitle tracks`);
         (s.mv ||= {})[n] = { streams, qualities: rows, subs, at: Date.now() };
         try { await send(jid, { delete: st.key }); } catch { }
-        const sent = await sendCard(send, jid, msg, full, n, rows, subs);
+        const sent = await sendCard(send, jid, msg, full, n, rows, subs, ctx);
         setUi(s, sent, 'movie', n);
         return true;
     }
 
     if (!arg) {
         return send(jid, {
-            text: `🎬 *MovieDex*\n\n*.moviedex <නම>* — search (movies + 📺 series)\nඅංකය reply කරන්න — card → options → files\n*.moviedex <n> <q#>* — 🍿 movie file · 🧳 season files · 🎬 episode file\n*.moviedex <n> <q#> link* — 🔗 share link\n${foot('series = 📺 · උදා: .moviedex breaking bad')}`,
+            text: `${sect('🎬 ＭＯＶＩＥＤＥＸ')}\n✦ *.moviedex <නම>* — search (movies + 📺 series)\n✦ tap / අංකය reply — card → options → files\n✦ *.moviedex <n> <q#>* — 🍿 movie file · 🧳 season files · 🎬 episode file\n✦ *.moviedex <n> <q#> link* — 🔗 share link\n${THIN}\n${foot('series = 📺 · උදා: .moviedex breaking bad')}`,
         }, { quoted: msg });
     }
 
@@ -1780,6 +1805,20 @@ async function handle(c, ctx) {
         if (!list.length) return edit(`❌ "${cut(arg, 40)}" — results නෑ · නම ටිකක් වෙනස් කරලා try`);
         sessions.set(jid, { list, at: Date.now(), detail: {}, tv: {}, mv: {} });
         if (sessions.size > 200) sessions.delete(sessions.keys().next().value);
+        // 🧊 v3.08 premium results — ONE interactive tap-card replaces the text list when it fits (≤20), else text list + tap card for the top 20
+        const rows = list.slice(0, 20).map((m, i) => ({ title: `${i + 1} · ${cut(m.name, 20)}`, desc: `${m.type === 'series' ? '📺' : '🎬'}${m.year ? ' ' + m.year : ''}${m.rating ? ' · ⭐ ' + m.rating : ''}`, id: `.moviedex ${i + 1}` }));
+        const sentInt = await sendInteractive({ send, jid, msg, ui, upload }, {
+            title: 'ＭＯＶＩＥＤＥＸ · ʀᴇsᴜʟᴛs',
+            text: `🔎 *${cut(arg, 40)}* — results ${list.length}\n\n${list.slice(0, 3).map((m, i) => `${i + 1}. ${cut(m.name, 40)}`).join('\n')}${list.length > 3 ? '\n…' : ''}\n\n👇 result එකක් තෝරලා tap කරන්න`,
+            selectTitle: '🍿 Results', sections: ui.sectionsOf(rows, 'RESULTS'),
+        });
+        if (sentInt) {
+            try { await send(jid, { delete: st.key }); } catch { }
+            if (list.length > 20) await send(jid, { text: listText(arg, list) + `\n\nℹ️ results ${list.length} ක් — tap card එකේ පළවෙනි 20 යි` }, { quoted: msg });   // full text list = NEW message (status එක delete වෙලා — edit fail වෙනවා)
+            const s3 = sessions.get(jid);
+            if (s3) setUi(s3, sentInt, 'list');
+            return true;
+        }
         edit(listText(arg, list));
         const s2 = sessions.get(jid);
         if (s2) setUi(s2, st, 'list');

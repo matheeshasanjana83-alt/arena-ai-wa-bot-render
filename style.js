@@ -24,4 +24,15 @@ const cut = (s, n) => String(s || '').trim().slice(0, n);
 /** one-line usage hint */
 const use = (line, example) => `${line}${example ? '\n   ' + example : ''}`;
 
-module.exports = { BRAND, foot, bar, cut, use };
+/* ── v3.08 premium kit ─────────────────────────────────────────────
+ * thin divider + small-caps labels + info chips — one shared visual
+ * language for every card the bot speaks (menu, panels, movie, AI). */
+const THIN = '⌯ ━━━━━━━━━━━━━ ⌯';
+
+const SC = { A: 'ᴀ', B: 'ʙ', C: 'ᴄ', D: 'ᴅ', E: 'ᴇ', F: 'ꜰ', G: 'ɢ', H: 'ʜ', I: 'ɪ', J: 'ᴊ', K: 'ᴋ', L: 'ʟ', M: 'ᴍ', N: 'ɴ', O: 'ᴏ', P: 'ᴘ', Q: 'ǫ', R: 'ʀ', S: 's', T: 'ᴛ', U: 'ᴜ', V: 'ᴠ', W: 'ᴡ', X: 'x', Y: 'ʏ', Z: 'ᴢ' };
+const sm = (s) => String(s || '').replace(/[A-Z]/g, (c) => SC[c] || c);
+
+/** premium section header — ╭─〈 ᴛɪᴛʟᴇ 〉─╮ */
+const sect = (title) => `╭─〈 ${sm(String(title || '').toUpperCase())} 〉─╮`;
+
+module.exports = { BRAND, foot, bar, cut, use, THIN, sm, sect };

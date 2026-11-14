@@ -42,6 +42,8 @@ const guard = require('./guard');
 const features = require('./features');
 const tools = require('./tools');
 const moviedex = require('./moviedex');
+const ui = require('./ui');   // 🧊 v3.08 — PREMIUM UI ENGINE: WhatsApp native interactive cards (single_select / cta_url, Baileys 7)
+const { THIN, sm, sect } = require('./style');   // v3.08 premium kit (BRAND/foot/cut already above)
 const pollinations = require('./pollinations');   // 🌸 v3.07 — baked default key visibility (auto-chat gate → zero-key silent bug fix)
 const animehub = require('./animehub');   // 🎌 v2.75 AniWorld + 🔞 NSFW (hentai-api style)
 const terabox = require('./terabox');   // ☁️ v2.84 TeraBox (jsToken → share/list → dlink)
@@ -74,6 +76,18 @@ function menuMedia() {
         }
     } catch { }
     return null;
+}
+
+/* ── 🧊 v3.08 PREMIUM INTERACTIVE PANELS — native single_select cards (Baileys 7) ──
+ * try → interactive card (photo header + body + tap button) · fail/unsupported → null → caller sends the classic card.
+ * The tap id (.menu 2 / .setting 3 / .mode 14) routes through the normal command path — zero duplicate logic. */
+async function sendInteractivePanel(send, jid, msg, { title, text, image, sections, selectTitle, ctaUrl }) {
+    try {
+        if (!SOCK?.waUploadToServer) return null;   // not connected yet → classic card
+        const content = await ui.interactiveContent({ jid, upload: SOCK.waUploadToServer, title, text, footer: foot(), image, sections, selectTitle, ctaUrl });
+        if (!content) return null;
+        return await send(jid, content, msg ? { quoted: msg } : undefined);
+    } catch (e) { log(`🧊 interactive card fail → classic: ${String(e?.message || e).slice(0, 80)}`); return null; }
 }
 const ANNOUNCE_NEXT = path.join(__dirname, '.announce-next');
 let SOCK = null;
@@ -222,6 +236,16 @@ async function start() {
 
     const send = async (jid, content, opts) => {
         content = antibug.cleanOut(content);   // 🛡️ v2.55 OUT-GUARD: bot එකෙන් යන හැම text/caption එකක්ම sanitize — bug payload එකක් කවදාවත් පිටතට යන්නේ නෑ
+        // 🧊 v3.08 INTERACTIVE NATIVE-FLOW CARDS — baileys sendMessage එකට generateWAMessageContent viewOnce-wrapped
+        // interactiveMessage pass-through කරන්න බෑ ("Invalid media type") — wrapper එක ම WAMessage එක හදලා (generateWAMessageFromContent:
+        // quoted contextInfo + key.id baked) relayMessage කරනවා — pacing/dedupe/sentIds tracking ඔක්කොමම අනිත් messages වලට වගේම
+        if (content?.viewOnceMessage?.message?.interactiveMessage) {
+            const b = await loadBaileys();
+            const wa = b.generateWAMessageFromContent(jid, content, { userJid: ME.pn || jid, quoted: opts?.quoted });
+            const s = await pace(async () => { await SOCK.relayMessage(jid, wa.message, { messageId: wa.key.id }); return wa; }, parseInt(process.env.ARENA_TEXT_TIMEOUT || '60000', 10)).catch((e) => { log(`📤 interactive relay fail: ${e.message}`); throw e; });
+            if (s?.key?.id) { sentIds.add(s.key.id); if (sentIds.size > 500) sentIds.delete(sentIds.values().next().value); remember(s); }
+            return s;
+        }
         // v2.30: media uploads get a hard timeout — one hung 200MB document used to
         // deadlock the pacer chain and silence the WHOLE bot (stuck "99%" symptom).
         const isMedia = content && ['document', 'video', 'image', 'audio', 'sticker', 'ptt'].some(k => content[k]);
@@ -330,6 +354,9 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                 if (type !== 'notify' && ts && ts < STARTED - 60) continue;   // old history — don't re-run old commands
                 seen.add(msg.key.id); if (seen.size > 1000) seen.delete(seen.values().next().value);
                 let text = getText(msg.message);
+                // 🧊 v3.08 NATIVE TAP — WhatsApp interactive card button press (interactiveResponseMessage) → the command id we baked into the button routes like a typed command (single_select list / cta presses never reach this — only row picks do)
+                const tap = ui.parseTap(msg.message);
+                if (tap) { text = tap; console.log(`🧊 👆 tap → ${cut(tap, 50)} (${bareJid(msg.key.remoteJid)})`); }
                 if (msg.key.remoteJid?.endsWith('@g.us')) glogPush(msg.key.remoteJid, String(msg.pushName || '').slice(0, 24), text || (msg.message?.stickerMessage ? '[sticker]' : msg.message?.audioMessage ? '[voice]' : msg.message?.imageMessage ? '[photo]' : msg.message?.videoMessage ? '[video]' : msg.message?.documentMessage ? `[doc ${msg.message?.documentMessage?.fileName || ''}]` : ''));   // 👥 v2.96 group chat memory for AI context
                 if (text && type === 'notify') console.log(`💬 ${fromMe ? '🤖' : '👤'} ${bareJid(msg.key.remoteJid)}${msg.key.participant ? '/' + bareJid(msg.key.participant) : ''}: ${cut(String(text).replace(/\n+/g, ' '), 60)}${msg.message?.extendedTextMessage?.contextInfo?.stanzaId ? ' ⤶' : ''}`);   // 🔎 v2.91: every-message console trace — second linked-device bot (same number, fromMe cards) made the chat look broken while this bot answered fine
                 if (accessible && /^\d{1,3}$/.test(text)) {                      // number reply → .mode / .setting / .menu panel · .moviedex card · 📋 yt quality menu (v2.64)
@@ -460,7 +487,7 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                 if (c === '.proxies' || c === '.proxypool') { await handleProxies(send, jid, msg, (rest[0] || '').toLowerCase()); continue; }
                 if (c === '.setcookies') { await handleCookies(send, del, jid, msg, rest.join(' ').trim()); continue; }
                 if (c === '.forward') { await runJob(() => handleForward(send, jid, msg, rest.join(' ').trim())); continue; }   // 🧭 owner-only (v2.41)
-                if (c === '.keys') { const k = ai.getKeys(); await send(jid, { text: `🔑 *API keys*\nGemini: ${k.gemini ? '✅ ' + mask(k.gemini) : '❌ නෑ'}\nGroq: ${k.groq ? '✅ ' + mask(k.groq) : '❌ නෑ'}\nZ.ai (GLM): ${k.zai ? '✅ ' + mask(k.zai) : '❌ නෑ'}\nTogether (🖼 image): ${k.together ? '✅ ' + mask(k.together) : '❌ නෑ — .setkey together <KEY>'}\nPollinations (🌸 chat/image/voice/stt): ${k.polli ? '✅ ' + mask(k.polli) : '🌸 default key ON — .setkey polli <KEY> override'}` }, { quoted: msg }); continue; }
+                if (c === '.keys') { const k = ai.getKeys(); await send(jid, { text: `${sect('🔑 API KEYS')}\n⚡ Gemini  ${k.gemini ? '✅ ' + mask(k.gemini) : '❌ නෑ'}\n⚡ Groq    ${k.groq ? '✅ ' + mask(k.groq) : '❌ නෑ'}\n⚡ Z.ai    ${k.zai ? '✅ ' + mask(k.zai) : '❌ නෑ'}\n🖼 Together ${k.together ? '✅ ' + mask(k.together) : '❌ නෑ — .setkey together <KEY>'}\n🌸 Polli   ${k.polli ? '✅ ' + mask(k.polli) : '🌸 default key ON — .setkey polli <KEY> override'}\n${THIN}\n${foot('.setkey <provider> <KEY>')}` }, { quoted: msg }); continue; }
                 if (c === '.aiprovider') { // 🎛 AI provider selector (v2.49)
                     const arg2 = (rest[0] || '').toLowerCase();
                     if (!arg2 || arg2 === 'auto' || arg2 === 'list' || arg2 === '?') {
@@ -476,7 +503,7 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                 if (c === '.restart') { await send(jid, { text: '🔄 Restart වෙනවා... තත්පර 10 කින් *.ping*' }, { quoted: msg }); setTimeout(() => process.exit(process.env.ARENA_LAUNCHER ? 100 : 0), 1500); continue; }
                 if (await runJob(() => tools.handle(c, { send, jid, msg, rest, sock: SOCK, me: ME, react }))) continue;
                 if (await runJob(() => features.handle(c, { send, jid, msg, rest, sock: SOCK, me: ME, download, react }))) continue;
-                if (await runJob(() => moviedex.handle(c, { send, jid, msg, rest, react }))) continue;
+                if (await runJob(() => moviedex.handle(c, { send, jid, msg, rest, react, ui, upload: SOCK?.waUploadToServer, me: ME }))) continue;   // 🧊 v3.08: ui + upload → interactive quality/results cards
                 if (await runJob(() => animehub.handle(c, { send, jid, msg, rest, react, download: (link, tag, cap) => dlQueue(() => handleDownload(send, jid, msg, link, tag, cap), { send, jid, msg, label: tag || 'file' }) }))) continue;   // 🎌 .aniworld + 🔞 .hentaiv (quality menu → file) + NSFW (v2.75/76)
                 if (await runJob(() => terabox.handle(c, { send, jid, msg, rest, react, download: (link, tag) => dlQueue(() => handleDownload(send, jid, msg, link, tag), { send, jid, msg, label: tag || 'TeraBox' }) }))) continue;   // ☁️ .terabox (v2.84 — info card → file)
                 if (await runJob(() => metdn.handle(c, { send, jid, msg, rest, react, download: (link, tag) => dlQueue(() => handleDownload(send, jid, msg, link, tag), { send, jid, msg, label: tag || 'mat6tube' }) }))) continue;   // 🔞 .metdn (v2.88 — search menu → quality menu → mp4)
@@ -589,6 +616,7 @@ const CATS = [
 ✦ *.ai roast* — 🔥 බැනුමට ආපහු බැනීම (on/off)
 ✦ 🏷️ v3.07 name calls — group එකේ *Dk · DK · ඩිකෙ · kaviz · කවිස් · batista · බටිස්ටා* කියලා කැඳවුවත් AI reply කරනවා (@mention අවශ්‍ය නෑ)
 ✦ 🎬 v3.07 auto-fetch — "මට jailer movie එක ඔනි" වගේ natural request එකක් ආවාම AI ම *.moviedex* run කරනවා · file එක ආවම "ලබා දුන්නා" confirm එකකුත් එනවා · fast/talk modes auto (full IQ)
+✦ 🧊 v3.08 premium UI — *.menu* · *.setting* · *.mode* + ＭＯＶＩＥＤＥＸ cards native TAP buttons වලින් (WhatsApp latest API) — number ගහන්නෙ නැතුව tap කරන්න; classic cards auto-fallback
 ✦ AI provider තෝරන්න — *.aiprovider gemini/groq/zai/auto* · *.setting* → 10\n✦ AI chat auto-reply — *.mode* → 5/6 on·off · 11-16 modes
 ✦ Smart multi-engine fallback auto (engine එකක් down වුණත් .ai වැඩ)
 ✦ *.setkey gemini/groq/zai/together/polli <KEY>* · *.keys* · *.stt* — voice→text`],
@@ -625,8 +653,18 @@ async function handleMenu(send, jid, msg, arg) {
         if (!cat[2]) return sendAlive(send, jid, msg, 'alive');
         return send(jid, { text: cat[2].replace('{MAX}', human(maxBytes())) + '\n' + foot('↩️ *.menu*') }, { quoted: msg });
     }
-    const caption = menuCaption(msg.pushName);
+    // 🧊 v3.08 interactive-first: native card (photo header + tap-to-open category list) → classic photo+caption fallback
     const bm = menuMedia();
+    const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
+    const ram = Math.round(process.memoryUsage().rss / 1048576);
+    const catRows = CATS.map(([e, nm], i) => ({ title: `${i + 1} · ${e} ${nm}`, desc: (CATS[i][2] || '').split('\n').find((l) => /^✦ \./.test(l)) || 'commands', id: `.menu ${i + 1}` }));
+    const sentInt = await sendInteractivePanel(send, jid, msg, {
+        title: `${BRAND} · MENU`,
+        text: `👋 ʜɪ *${String(msg.pushName || 'Boss').slice(0, 25)}*\n\n⚡ v${v} · ⏱ ${fmtUptime(process.uptime())} · 💾 ${ram} MB\n🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️ anti-ban ON`,
+        image: bm?.image, selectTitle: '📂 Categories', sections: ui.sectionsOf(catRows, 'MENU'),
+    });
+    if (sentInt?.key?.id) { menuState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
+    const caption = menuCaption(msg.pushName);
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) menuState.set(jid, { id: sent.key.id, at: Date.now() });
 }
@@ -708,8 +746,16 @@ async function handleSetting(send, jid, msg, arg) {
         if (!done) return send(jid, { text: '❌ 1 – 10 අතර number එකක් reply කරන්න' }, { quoted: msg });
         await send(jid, { text: '✅ ' + done }, { quoted: msg });   // toggle confirm → පස්සේ panel refresh
     }
-    const caption = settingCaption();
+    // 🧊 v3.08 interactive-first: caption එකේම 1-10 rows native list එකක් වෙනවා — tap → .setting <n>
+    const rows = settingCaption().split('\n').map((l) => { const m = l.match(/^\s*(\d{1,2})\s*\|\s*(.+)$/); return m ? { title: `${m[1]} · ${m[2]}`, id: `.setting ${m[1]}` } : null; }).filter(Boolean);
     const bm = menuMedia();
+    const sentInt = await sendInteractivePanel(send, jid, msg, {
+        title: `${BRAND} · SETTINGS`,
+        text: settingCaption().split('\n\n')[0].replace(/^/, ''),   // header + live status block (pre-select section)
+        image: bm?.image, selectTitle: '⚙️ Options', sections: ui.sectionsOf(rows, 'SETTINGS'),
+    });
+    if (sentInt?.key?.id) { settingState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
+    const caption = settingCaption();
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) settingState.set(jid, { id: sent.key.id, at: Date.now()});   // number replies → අලුත් panel එකටම
 }
@@ -858,8 +904,17 @@ async function handleMode(send, jid, msg, arg) {
         guard.setChatMode(arg);
         await send(jid, { text: '✅ mode: ' + MODE_LABELS[arg === 'inbox' ? 3 : 4] }, { quoted: msg });
     }
-    const caption = modeCaption();
+    // 🧊 v3.08 interactive-first: modes native list — tap → .mode <n>
+    const cur = guard.chatMode(), aiOn = guard.aiChatOn(), aim = guard.aiMode();
+    const rows = modeCaption().split('\n').map((l) => { const m = l.match(/\*(\d{1,2})\s*\|\*\s*(.+)$/); return m ? { title: `${m[1]} · ${m[2]}`, id: `.mode ${m[1]}` } : null; }).filter(Boolean);
     const bm = menuMedia();
+    const sentInt = await sendInteractivePanel(send, jid, msg, {
+        title: `${BRAND} · MODE`,
+        text: `🛡 ≡ *BOT MODE PANEL* ≡ 🍁\n\n🍀 | *WORK TYPE:* ${cur.toUpperCase()}\n🍀 | *AI CHAT:* ${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})\n\n⟶ modes පහළ button එකේ 👇`,
+        image: bm?.image, selectTitle: '🛡️ Modes', sections: ui.sectionsOf(rows, 'MODES'),
+    });
+    if (sentInt?.key?.id) { modeState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
+    const caption = modeCaption();
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) modeState.set(jid, { id: sent.key.id, at: Date.now() });   // number replies → අලුත් panel එකටම
 }
