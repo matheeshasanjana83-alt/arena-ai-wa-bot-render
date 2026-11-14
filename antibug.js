@@ -46,8 +46,34 @@ function cfg() {
         report: a.report !== false,
         reportCount: clampCount(a.reportCount),
         dailyCap: clampCount(a.dailyCap || 20),          // v2.55: 24h report budget (WhatsApp mass-report spam-flag guard)
+        dryrun: a.dryrun === true,                        // v3.10 🧪 detect-only test mode — delete/block/report/report ඔක්කොම SKIP, catch/alert විතරයි
+        kick: a.kick === true,                            // v3.10 🚪 severe bug (group) + bot admin → sender kick
+        wl: Array.isArray(a.wl) ? a.wl.map(String) : [],  // v3.10 📋 whitelist — කවදාවත් flag/block නොකරන numbers
     };
 }
+
+// ── v3.10 whitelist (sachi-anticrasher port) — numbers never flagged/blocked/flood-checked ──
+const numOnly = (s) => String(s || '').replace(/\D/g, '');
+function wlAdd(n) {
+    const x = numOnly(n);
+    if (!x || x.length < 7) return '❌ number එකක් දෙන්න — උදා: *.antibug wl add 94771234567*';
+    const wl = cfg().wl;
+    if (wl.includes(x)) return `⚠️ ${x} දැනටමත් whitelist එකේ`;
+    setCfg({ wl: [...wl, x] });
+    return `✅ whitelist එකට එකතු කළා: *${x}*\n╰─ මාවා කවදාවත් bug-flag/block කරන්නෙ නෑ`;
+}
+function wlDel(n) {
+    const x = numOnly(n);
+    const wl = cfg().wl;
+    if (!wl.includes(x)) return `⚠️ ${x || '(number නෑ)'} whitelist එකේ නෑ`;
+    setCfg({ wl: wl.filter((v) => v !== x) });
+    return `🗑️ whitelist එකෙන් අයින් කළා: *${x}*`;
+}
+function wlList() {
+    const wl = cfg().wl;
+    return ['╭─❖ 📋 *WHITELIST* ❖', `│ bug guard එකෙන් සැමවිටම නිදහස් (${wl.length})`, ...wl.map((x) => `│ • ${x}`), '╰─ .antibug wl add <num> · .antibug wl del <num>'].join('\n');
+}
+const isWhitelisted = (sender) => { const n = numOnly(sender); return !!n && cfg().wl.includes(n); };
 function setCfg(patch) { const d = readSet(); d.antibug = { ...cfg(), ...patch }; writeSet(d); return d.antibug; }
 
 // ── v2.55 persistent state (report budget / lockdown — survives restarts) ──
@@ -56,7 +82,54 @@ const state = (() => { try { const j = JSON.parse(fs.readFileSync(STATE_F, 'utf8
 state.reports = Array.isArray(state.reports) ? state.reports : [];
 state.catches = Array.isArray(state.catches) ? state.catches : [];      // v2.77: persistent catch log (survives restarts — .antibug scan shows the TRUTH)
 state.reportsLog = Array.isArray(state.reportsLog) ? state.reportsLog : [];   // v2.77: every retaliation outcome {at,who,want,ok,fails,aborted,err,blockedNow}
+state.senders = state.senders && typeof state.senders === 'object' ? state.senders : {};   // v3.10 📊 per-sender bug totals {num,total,severe,lastAt} — .antibug stats
 const saveState = () => { try { fs.writeFileSync(STATE_F, JSON.stringify(state)); } catch { } };
+
+// ── v3.10 stats (sachi-anticrasher port) — per-sender bug totals + top offenders ──
+function bumpSender(sender, severe) {
+    const k = normJid(sender || '');
+    if (!k || k.endsWith('@g.us') || k.endsWith('@broadcast')) return;
+    const e = state.senders[k] || { num: k.split('@')[0].split(':')[0], total: 0, severe: 0, lastAt: 0 };
+    e.total++; if (severe) e.severe++; e.lastAt = Date.now();
+    state.senders[k] = e;
+    if (Object.keys(state.senders).length > 300) {           // prune oldest — memory guard
+        const oldest = Object.entries(state.senders).sort((a, b) => (a[1].lastAt || 0) - (b[1].lastAt || 0)).slice(0, 100);
+        for (const [k2] of oldest) delete state.senders[k2];
+    }
+    saveState();
+}
+function statsText() {
+    const all = Object.values(state.senders);
+    const total = all.reduce((s, e) => s + e.total, 0), sev = all.reduce((s, e) => s + e.severe, 0);
+    const top = all.sort((a, b) => b.total - a.total).slice(0, 5)
+        .map((e, i) => `│ ${String(i + 1).padStart(2, '0')} ▸ ${e.num} — bug ×${e.total}${e.severe ? ' (severe ×' + e.severe + ')' : ''} · ${whenStr(e.lastAt)}`)
+        .filter(Boolean);
+    return ['╭─❖ 📊 *ANTI-BUG STATS* ❖', `│ bug හැමෝටම: ×${total} · severe ×${sev}`, `│ වෙනස් numbers: ${all.length}`, `│ catches log: ${state.catches.length} · reports: ${state.reportsLog.length}`, `│ block list: ${blocked.size} (session)`, ...(top.length ? ['', '│ 🏆 වැඩිපුර bug ගහපු අය:', ...top] : ['╰─ තාම bug එකකුත් ආවේ නෑ — clean ✅']), ...(top.length ? ['╰─ .antibug scan — අන්තිම catches'] : [])].join('\n');
+}
+
+// ── v3.10 thresholds (sachi-anticrasher port) — current detection limits, honest view ──
+function thresholdsText() {
+    const lines = Object.entries(L).map(([k, v]) => `│ ${k} = ${v}`);
+    return ['╭─❖ ⚙️ *THRESHOLDS* ❖', '│ මේ limits මැඩිල්ලෙන් උනාම bug flag වෙනවා (severe = block/report එකට)', ...lines, '╰─ .antibug check — මැසේජ් එකක් මේ limits එකේ scan කරලා බලන්න'].join('\n');
+}
+
+// ── v3.10 check (sachi-anticrasher .ac scan port) — quoted message live analyze ──
+function checkText(quoted) {
+    if (!quoted || typeof quoted !== 'object' || !Object.keys(quoted).length)
+        return '❌ මැසේජ් එකකට *reply* කරලා *.antibug check* ගහන්න — ඒ message එක live scan කරලා verdict එක පෙන්නනවා';
+    const r = detect(quoted);
+    const verdict = r.severe ? '🚨 *FLAGGED — SEVERE*' : r.bug ? '⚠️ *FLAGGED — bug*' : '✅ *CLEAN*';
+    const why = r.reasons.length ? ['', '│ හේතු:', ...r.reasons.map((x) => `│ • ${x}`)] : ['╰─ කිසිම bug pattern එකක් නෑ — normal message ✅'];
+    return ['╭─❖ 🧪 *BUG CHECK* ❖', `│ ${verdict}`, ...why, ...(r.reasons.length ? [`│`, '│ 🧹 auto: delete → report → block (severe නම්)', '╰─ සැබෑ false-positive එකක් නම් .antibug wl add <num>'] : [])].join('\n');
+}
+
+// ── v3.10 reports history (sachi-anticrasher port) — retaliation outcomes ──
+function reportsText() {
+    const rows = state.reportsLog.slice(0, 10).map((e) =>
+        `│ ${whenStr(e.at)} · ${e.who}${e.kind ? ' (' + e.kind + ')' : ''} → report ${e.ok}/${e.want}${e.aborted ? ' ⛔abort' : ''}${e.blockedNow ? ' · ⛔ block ✅' : ''}${e.err ? '\n│   ⚠️ ' + e.err.slice(0, 60) : ''}`);
+    if (!rows.length) return '╭─❖ 📨 *REPORTS* ❖\n╰─ තාම report එකකුත් fire වෙලා නෑ (severe bug එකක් ආවාම auto)';
+    return ['╭─❖ 📨 *REPORT HISTORY* ❖', ...rows, '╰─ .antibug reporttest — stanza path live test'].join('\n');
+}
 const DAILY_CAP = () => cfg().dailyCap;
 function reportBudget() {   // reports left in the rolling 24h window
     const now = Date.now();
@@ -448,12 +521,25 @@ async function guard(msg, ctx) {
     const isGroup = jid.endsWith('@g.us');
     const isPrivate = !isGroup && !isStatus && !isNews;
     const sender = isGroup ? (msg.key.participantAlt || msg.key.participant || '') : isStatus ? (msg.key.participant || '') : (msg.key.remoteJidAlt || jid);
+    if (isWhitelisted(sender)) return false;                                 // v3.10 📋 whitelist — කවදාවත් flag/flood-check නෝනා දෙන්නෙ නෑ
     const r = detect(msg.message);
     const isFlood = isPrivate && floodCheck(sender || jid);   // statuses arrive in bursts — never flood-check those
     if (!r.bug && !isFlood) return false;
     if (!r.bug) r.reasons.push(`flood: 10s messages ${L.floodN}+`);
+    bumpSender(sender, r.severe);                                            // v3.10 📊 per-sender totals (`.antibug stats`)
     const { sock, me, send, log = () => { } } = ctx;
     if (!sock || !actionOk()) return true;
+    if (cfg().dryrun) {                                                       // v3.10 🧪 dry-run (sachi port) — detect + log + alert විතරයි, actions ඔක්කොම SKIP
+        const hit = { at: Date.now(), num: String(sender || jid).split('@')[0].split(':')[0], where: isGroup ? 'group' : isStatus ? 'status' : isNews ? 'newsletter' : 'private', reasons: r.reasons.join(' · '), done: '🧪 dry-run — action නෑ' };
+        state.catches.unshift(hit); if (state.catches.length > 30) state.catches.length = 30; saveState();
+        const now2 = Date.now();
+        if (send && me?.pn && now2 - (lastReport.get(sender) || 0) > 5 * 60e3) {
+            lastReport.set(sender, now2);
+            try { await send(me.pn, { text: ['╭─❖ 🧪 *DRY-RUN CATCH* ❖', `│ 👤 ${hit.num}`, `│ ⚠️ ${hit.reasons}`, '│ ✅ detect විතරයි — delete/block/report කිසිවක් කරේ නෑ', '╰─ OFF කරන්න: *.antibug dryrun off*'].join('\n') }); } catch { }
+        }
+        log(`🛡️ anti-bug 🧪dry-run: ${hit.num} — ${hit.reasons}`);
+        return true;
+    }
     const done = [];
     if (r.bug) {
         try {
@@ -463,6 +549,9 @@ async function guard(msg, ctx) {
         if (isGroup && await botIsAdmin(sock, jid, me)) {
             try { await sock.sendMessage(jid, { delete: msg.key }); done.push('🗑️ delete (හැමෝටම)'); } catch { }
         }
+    }
+    if (r.severe && isGroup && cfg().kick && sender) {                        // v3.10 🚪 kick-on-critical (sachi port) — bot admin නම් severe bug ගහපු එකා kick
+        try { await sock.groupParticipantsUpdate(jid, [sender], 'remove'); done.push('🚪 kick'); } catch (e) { log('antibug kick: ' + e.message); }
     }
     // ── v2.33: RETALIATION — bug ගහපු එකාට විතරයි: auto report ×N (24h budget) → ඉවර උනාම block ──
     // (background run — the message loop never waits for the reports; block lands AFTER them)
@@ -589,10 +678,26 @@ function selfTest() {
     return lines.join('\n');
 }
 
-async function command(arg, arg2) {
+async function command(arg, arg2, arg3) {
     const a = (arg || '').toLowerCase(), b = (arg2 || '').toLowerCase();
     if (a === 'scan') return scanText();
     if (a === 'test') return selfTest();
+    if (a === 'stats') return statsText();                                   // v3.10 📊 sachi port
+    if (a === 'thresholds') return thresholdsText();                          // v3.10 ⚙️ sachi port
+    if (a === 'reports') return reportsText();                                // v3.10 📨 sachi port
+    if (a === 'wl' || a === 'whitelist') return b === 'add' ? wlAdd(arg3) : (b === 'del' || b === 'remove') ? wlDel(arg3) : wlList();   // v3.10 📋 sachi port
+    if (a === 'dryrun' && (b === 'on' || b === 'off')) {                      // v3.10 🧪 sachi port
+        setCfg({ dryrun: b === 'on' });
+        return b === 'on'
+            ? '🧪 *Dry-run ON* — bug හඳුනාගෙන catch log එකට + alert එකට යනවා විතරයි. delete/block/report කිසිවක් වෙන්නේ නෑ (test mode).'
+            : '✅ *Dry-run OFF* — සැබෑ actions ආයෙත් ON (delete → report → block)';
+    }
+    if (a === 'kick' && (b === 'on' || b === 'off')) {                        // v3.10 🚪 sachi port
+        setCfg({ kick: b === 'on' });
+        return b === 'on'
+            ? '🚪 *Kick ON* — group එකේ severe bug ගහපු එකා bot admin නම් group එකෙන් kick වෙනවා'
+            : '✅ *Kick OFF* — group bugs වලට delete/report විතරයි, kick නෑ';
+    }
     if (a === 'on' || a === 'off') setCfg({ on: a === 'on' });
     else if (a === 'block' && (b === 'on' || b === 'off')) setCfg({ block: b === 'on' });
     else if (a === 'report' && (b === 'on' || b === 'off')) setCfg({ report: b === 'on' });
@@ -603,14 +708,21 @@ async function command(arg, arg2) {
         : rl.ok > 0 ? `│ 📨 last report: ${rl.ok}/${rl.want} ✅ (${whenStr(rl.at)})`
             : `│ 📨 last report: ❌ 0/${rl.want}${rl.aborted ? ' (abort)' : ''} — ${rl.err ? rl.err.slice(0, 50) : 'server reject'} (${whenStr(rl.at)})`;
     return ['╭─❖ 🛡️ *ANTI-BUG* ❖',
-        `│ තත්ත්වය: ${c.on ? '✅ ON' : '❌ OFF'}`,
+        `│ තත්ත්වය: ${c.on ? '✅ ON' : '❌ OFF'}${c.dryrun ? ' · 🧪 DRY-RUN (action නෑ)' : ''}`,
         `│ Bug ගහපු එකාට auto report ×${c.reportCount}: ${c.report ? '✅' : '❌'} (24h budget: ${budget}/${DAILY_CAP()})`,
         rlLine,
-        `│ Report ඉවර උනාම block (private): ${c.block ? '✅' : '❌'}`,
-        `│ 🛡️ OUT-GUARD: යන හැම message එකක්ම sanitize (bot එකෙන් bug යන්නේ නෑ) ✅`,
+        `│ Report ඉවර උනාම block (private): ${c.block ? '✅' : '❌'} · 🚪 kick (group): ${c.kick ? '✅' : '❌'}`,
+        `│ 📋 whitelist: ${c.wl.length} කෙනෙක් · 🛡️ OUT-GUARD: sanitize ✅`,
         `│ 🌩️ storm lock: ${lockedDown() ? '⚠️ ON (AI silent)' : '—'}`,
         `│ මේ session එකේ block කළා: ${blocked.size}`,
         '├─ *.antibug on / off*',
+        '├─ *.antibug dryrun on / off* — 🧪 test mode (detect විතරයි)',
+        '├─ *.antibug wl add|del|list <num>* — 📋 whitelist',
+        '├─ *.antibug check* — 🧪 bug message එකට reply → live scan',
+        '├─ *.antibug stats* — 📊 bug totals + top senders',
+        '├─ *.antibug thresholds* — ⚙️ detection limits',
+        '├─ *.antibug reports* — 📨 report history',
+        '├─ *.antibug kick on / off* — 🚪 severe bug → group kick',
         '├─ *.antibug report on / off*',
         '├─ *.antibug count <1-100>* — report ගණන (default 30)',
         '├─ *.antibug block on / off*',
@@ -623,4 +735,4 @@ async function command(arg, arg2) {
         '╰─ Bug → delete + report (24h budget) → block · යන messages ඔක්කොම sanitize'].join('\n');
 }
 
-module.exports = { detect, guard, command, cfg, setCfg, floodCheck, selfTest, reportSpam, reportTest, reportManual, retaliate, startRetaliate, sanitizeOut, cleanOut, clearChat, unblockAll, lockedDown, noteSevere, reportBudget, L, _flood: flood, _blocked: blocked, _recent: recent, _retalRunning: retalRunning, _retaliated: retaliated, _state: state, _resetPause: () => { retalPauseUntil = 0; } };
+module.exports = { detect, guard, command, cfg, setCfg, floodCheck, selfTest, reportSpam, reportTest, reportManual, retaliate, startRetaliate, sanitizeOut, cleanOut, clearChat, unblockAll, lockedDown, noteSevere, reportBudget, wlAdd, wlDel, wlList, isWhitelisted, statsText, thresholdsText, checkText, reportsText, bumpSender, L, _flood: flood, _blocked: blocked, _recent: recent, _retalRunning: retalRunning, _retaliated: retaliated, _state: state, _resetPause: () => { retalPauseUntil = 0; } };

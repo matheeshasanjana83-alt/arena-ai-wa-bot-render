@@ -77,9 +77,20 @@ function menuMedia() {
     return null;
 }
 
-/* ── 🧊 v3.08 PREMIUM INTERACTIVE PANELS — native single_select cards (Baileys 7) ──
- * try → interactive card (photo header + body + tap button) · fail/unsupported → null → caller sends the classic card.
- * The tap id (.menu 2 / .setting 3 / .mode 14) routes through the normal command path — zero duplicate logic. */
+/* ── 🧊 v3.08 PREMIUM INTERACTIVE PANELS + 🔘 v3.10 REAL BUTTON LIST ──
+ * 🔘 listMessage (proto ListMessage, listType 1) — interactiveMessage/native_flow එකට වෙනස්ම
+ * message type — WhatsApp classic button-list UI (button tap → list popup → row tap → command).
+ * try → button list · fail/unsupported/off → null → caller falls to the next tier.
+ * Tier chain: 🔘 button list → 🧊 interactive card → classic text/photo card — silent නෑ. */
+const btnOn = () => readSettings().btn !== false;   // 🔘 .menubtn on|off (default ON)
+async function sendListPanel(send, jid, msg, { title, text, buttonText, sections }) {
+    try {
+        if (!SOCK?.waUploadToServer || !btnOn()) return null;   // not connected / .menubtn off → next tier
+        const content = ui.listContent({ title, text, footer: foot(), buttonText, sections });
+        if (!content) return null;
+        return await send(jid, content, msg ? { quoted: msg } : undefined);
+    } catch (e) { log(`🔘 button list fail → next: ${String(e?.message || e).slice(0, 80)}`); return null; }
+}
 async function sendInteractivePanel(send, jid, msg, { title, text, image, sections, selectTitle, ctaUrl }) {
     try {
         if (!SOCK?.waUploadToServer) return null;   // not connected yet → classic card
@@ -184,7 +195,7 @@ const HELP = `${head()}
 ⏰ *.remind 10m <note>* · 👁 photo/PDF reply + *.ai* · 🎨 *.ai* — "image එකක් හදලා දෙන්න" · 🎬 "jailer movie ඕනේ" කිව්වම AI ම auto .moviedex ගහනවා
 🔧 *.net* · *.setproxy* · *.setconsumet* · *.proxies* · *.setcookies* · *.setkey* · *.keys*
 ⚙️ *.setting* (panel) · *.mode* · *.react* · *.maxmb* · *.setlogo* · *.addmenu* · *.autoupdate* · *.update* · *.version* · *.restart*
-🛡️ *.antibug* · *.block* · *.unblock* · *.blocklist* · *.antispam* · *.spamlog*
+🛡️ *.antibug* · *.block* · *.unblock* · *.blocklist* · *.antispam* · *.spamlog* · *.menubtn*
 
 > 📥 direct · GitHub · Drive · MediaFire · MEGA · Dropbox · Pixeldrain…
 > 📏 max ${human(maxBytes())} / file — *.maxmb* වෙනස් කරන්න
@@ -237,24 +248,27 @@ async function start() {
 
     const send = async (jid, content, opts) => {
         content = antibug.cleanOut(content);   // 🛡️ v2.55 OUT-GUARD: bot එකෙන් යන හැම text/caption එකක්ම sanitize — bug payload එකක් කවදාවත් පිටතට යන්නේ නෑ
-        // 🧊 v3.08 INTERACTIVE NATIVE-FLOW CARDS — baileys sendMessage එකට generateWAMessageContent viewOnce-wrapped
-        // interactiveMessage pass-through කරන්න බෑ ("Invalid media type") — wrapper එක ම WAMessage එක හදලා (generateWAMessageFromContent:
+        // 🧊 v3.08 INTERACTIVE NATIVE-FLOW CARDS + 🔘 v3.10 REAL BUTTON LIST — baileys sendMessage එකට generateWAMessageContent viewOnce-wrapped
+        // interactiveMessage/listMessage pass-through කරන්න බෑ ("Invalid media type") — wrapper එක ම WAMessage එක හදලා (generateWAMessageFromContent:
         // quoted contextInfo + key.id baked) relayMessage කරනවා — pacing/dedupe/sentIds tracking ඔක්කොමම අනිත් messages වලට වගේම
-        if (content?.viewOnceMessage?.message?.interactiveMessage) {
+        const isList = !!(content?.viewOnceMessage?.message?.listMessage);
+        const isInt = !!(content?.viewOnceMessage?.message?.interactiveMessage);
+        if (isInt || isList) {
             const b = await loadBaileys();
             const wa = b.generateWAMessageFromContent(jid, content, { userJid: ME.pn || jid, quoted: opts?.quoted });
             // 🚚 v3.08.1 FIX (v3.08.0 silent .menu): interactive relay එකට official client එක emit කරන
             // biz/interactive/native_flow binary nodes (+ private chat නම් bot node) ඕනේම — නැත්නම්
             // server accept කරනවා ඒත් client එකේ card එක render වෙන්නෙ නෑ. flowNodes() = that node set.
-            const nodes = ui.flowNodes(jid);
-            const s = await pace(async () => { await SOCK.relayMessage(jid, wa.message, { messageId: wa.key.id, additionalNodes: nodes }); return wa; }, parseInt(process.env.ARENA_TEXT_TIMEOUT || '60000', 10)).catch((e) => { log(`📤 interactive relay fail: ${e.message}`); throw e; });
+            // 🔘 v3.10: listMessage = native_flow නෙවෙයි → biz/interactive node එක SKIP (list mode).
+            const nodes = ui.flowNodes(jid, { list: isList });
+            const s = await pace(async () => { await SOCK.relayMessage(jid, wa.message, { messageId: wa.key.id, additionalNodes: nodes }); return wa; }, parseInt(process.env.ARENA_TEXT_TIMEOUT || '60000', 10)).catch((e) => { log(`📤 ${isList ? 'button-list' : 'interactive'} relay fail: ${e.message}`); throw e; });
             if (s?.key?.id) { sentIds.add(s.key.id); if (sentIds.size > 500) sentIds.delete(sentIds.values().next().value); remember(s); }
             // 🚚 v3.08.1 NEVER-SILENT: relay "OK" = socket write විතරයි — server receipt (messages.update
-            // status ≥ SERVER_ACK) 8s ඇතුළට නැත්නම් throw → sendInteractivePanel catch → classic card.
-            // interactive fail එකක් flow එකක් කවදාවත් silent කරන්නෙ නෑ (v3.08 rule එක දැන් wire level එකෙනුත් තහවුරු).
+            // status ≥ SERVER_ACK) 8s ඇතුළට නැත්නම් throw → panel sender catch → next-tier fallback.
+            // interactive/button fail එකක් flow එකක් කවදාවත් silent කරන්නෙ නෑ (v3.08 rule එක දැන් wire level එකෙනුත් තහවුරු).
             if (s?.key?.id && !(await ui.ackWait(s.key.id, parseInt(process.env.ARENA_ACK_WAIT || '8000', 10)))) {
-                log('📤 interactive card — server receipt නෑ (8s) → classic fallback');
-                throw new Error('interactive card not accepted — classic fallback');
+                log('📤 native card — server receipt නෑ (8s) → fallback');
+                throw new Error('native card not accepted — fallback');
             }
             return s;
         }
@@ -435,6 +449,17 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                 if (c === '.mode') { await handleMode(send, jid, msg, (rest[0] || '').toLowerCase()); continue; }
                 if (c === '.ping') { const ms = Math.max(1, Date.now() - Number(msg.messageTimestamp) * 1000); await send(jid, { text: `🏓 *Pong!* ${ms} ms` }, { quoted: msg }); continue; }
                 if (c === '.menu') { await handleMenu(send, jid, msg, rest[0]); continue; }
+                if (c === '.menubtn') {   // 🔘 v3.10 button menu toggle (default ON)
+                    const b2 = (rest[0] || '').toLowerCase();
+                    if (b2 === 'on' || b2 === 'off') {
+                        const d = readSettings(); d.btn = b2 === 'on';
+                        try { fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(d, null, 2)); } catch { }
+                        await send(jid, { text: b2 === 'on' ? '🔘 Button menu *ON* — .menu/.setting වලට WhatsApp native list button එක යනවා (render නොවුණොත් classic card auto)' : '🔘 Button menu *OFF* — classic premium card එක විතරයි' }, { quoted: msg });
+                        continue;
+                    }
+                    await send(jid, { text: `🔘 Button menu: *${btnOn() ? 'ON' : 'OFF'}*\n\n*.menubtn on* — WhatsApp native button list (tap → command)\n*.menubtn off* — classic premium cards විතරයි` }, { quoted: msg });
+                    continue;
+                }
                 if (c === '.setting' || c === '.settings') { await handleSetting(send, jid, msg, rest[0]); continue; }   // ⚙️ settings panel (අංක reply)
                 if (c === '.help' || c === '.commands') { await send(jid, { text: HELP }, { quoted: msg }); continue; }
                 if (c === '.maxmb' || c === '.setmax' || c === '.limit') { await handleMaxMB(send, jid, msg, (rest[0] || '').toLowerCase()); continue; }
@@ -464,7 +489,12 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                         await send(jid, { text: await antibug.reportManual(quoted, { sock: SOCK, me: ME, log }) }, { quoted: msg });
                         continue;
                     }
-                    await send(jid, { text: await antibug.command(rest[0], rest[1]) }, { quoted: msg });
+                    if (sub === 'check') {                                            // 🧪 v3.10 sachi port: quoted message live analyze
+                        const qm = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+                        await send(jid, { text: antibug.checkText(qm) }, { quoted: msg });
+                        continue;
+                    }
+                    await send(jid, { text: await antibug.command(rest[0], rest[1], rest[2]) }, { quoted: msg });
                     continue;
                 }
                 if (c === '.antispam') { await send(jid, { text: antispam.command(rest[0], rest[1]) }, { quoted: msg }); continue; }
@@ -571,7 +601,7 @@ function dlQueue(fn, info) {
 const menuState = new Map();   // jid → { id, at } of the last menu (for number replies)
 const settingState = new Map();   // jid → { id, at } of the last .setting panel (number replies)
 const modeState = new Map();   // jid → { id, at } of the last .mode panel (number replies) — v2.41
-const OWNER_CMDS = new Set(['.mode', '.setting', '.settings', '.setkey', '.delkey', '.keys', '.autoupdate', '.update', '.restart', '.block', '.unblock', '.blocklist', '.spamlog', '.antibug', '.antispam', '.maxmb', '.setmax', '.limit', '.setlogo', '.dellogo', '.addmenu', '.delmenu', '.deck', '.menudeck', '.setproxy', '.setconsumet', '.proxies', '.proxypool', '.net', '.netcheck', '.setcookies', '.tbcookie', '.del', '.delete', '.react', '.forward']);   // 🔒 never for others (v2.41)
+const OWNER_CMDS = new Set(['.mode', '.setting', '.settings', '.setkey', '.delkey', '.keys', '.autoupdate', '.update', '.restart', '.block', '.unblock', '.blocklist', '.spamlog', '.antibug', '.antispam', '.maxmb', '.setmax', '.limit', '.setlogo', '.dellogo', '.addmenu', '.delmenu', '.deck', '.menudeck', '.setproxy', '.setconsumet', '.proxies', '.proxypool', '.net', '.netcheck', '.setcookies', '.tbcookie', '.del', '.delete', '.react', '.forward', '.menubtn']);   // 🔒 never for others (v2.41) · 🔘 v3.10 .menubtn
 const REACTS = ['⚡', '🔥', '✨', '💠', '🚀', '😎', '🤖', '💫', '🌟', '🎯', '💎', '🫡', '👌', '🌀', '🍃'];
 const readSettings = () => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), 'utf8')); } catch { return {}; } };
 const reactOn = () => !process.env.ARENA_NO_REACT && readSettings().react !== false;
@@ -637,7 +667,7 @@ const CATS = [
     ['🔧', 'Network', `*🔧 NETWORK*\n\n✦ *.net <link>* — fail වුණොත් හේතුව\n✦ *.setproxy <url|off>* — block sites වලට\n✦ *.setconsumet <url|off>* — animepahe API mirror 🎌\n✦ *.proxies* — free pool status · *.proxies check*\n✦ *.setcookies* — YouTube bot-check fix\n✦ *.tbcookie <ndus>* — ☁️ TeraBox cookie (LIVE verify)`],
     ['⚙️', 'Settings', `*⚙️ SETTINGS*\n\n✦ *.setlogo* / *.dellogo* — menu logo\n✦ *.addmenu* — 🖼 photo deck add (හැම .menu එකකම ඊළඟ photo එක rotate වෙනවා) · *.deck* · *.delmenu <n>*\n✦ *.react on|off* — auto react\n✦ *.maxmb <MB>* — download limit\n✦ *.setting* — ⚙️ settings panel (අංක reply → toggle)
 ✦ *.mode* — 🛡 mode panel (public / private / inbox / groups + AI chat modes)\n✦ *.autoupdate on|off* — GitHub එකෙන් auto update (default on)\n✦ *.update* · *.restart* · *.version*`],
-    ['🛡️', 'Security', `*🛡️ SECURITY*\n\n✦ commands — ඔයාට විතරයි (owner-only)\n✦ anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard`],
+    ['🛡️', 'Security', `*🛡️ SECURITY*\n\n✦ commands — ඔයාට විතරයි (owner-only)\n✦ anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug dryrun on|off* — 🧪 test mode (detect විතරයි, action නෑ)\n✦ *.antibug wl add|del|list <num>* — 📋 whitelist (කවදාවත් flag නොකරන අය)\n✦ *.antibug check* — 🧪 bug message එකකට reply → live scan verdict\n✦ *.antibug stats* — 📊 bug totals + top senders · *.antibug thresholds* — limits\n✦ *.antibug reports* — 📨 report history · *.antibug kick on|off* — 🚪 group kick\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard\n✦ 🔘 *.menubtn on|off* — button menu toggle (WhatsApp native list)`],
     ['📊', 'Status', null],
 ];
 function menuCaption(name) {
@@ -668,11 +698,20 @@ async function handleMenu(send, jid, msg, arg) {
         const title = (lines.shift() || '').replace(/\*/g, '');   // first bold line = '📥 DOWNLOAD' → section header
         return send(jid, { text: [sect(title), '', ...lines, '', close(18), '', foot('↩️ *.menu*')].join('\n').replace('{MAX}', human(maxBytes())) }, { quoted: msg });
     }
-    // 🧊 v3.08 interactive-first: native card (photo header + tap-to-open category list) → classic photo+caption fallback
+    // 🧊 tier variables — BOTH tiers use these (v/ram/catRows before any send)
     const bm = menuMedia();
     const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
     const ram = Math.round(process.memoryUsage().rss / 1048576);
     const catRows = CATS.map(([e, nm], i) => ({ title: `${i + 1} · ${e} ${nm}`, desc: (CATS[i][2] || '').split('\n').find((l) => /^✦ \./.test(l)) || 'commands', id: `.menu ${i + 1}` }));
+    // 🔘 v3.10 TIER 1 — REAL button list (proto listMessage): button tap → list popup → row tap → command
+    const sentList = await sendListPanel(send, jid, msg, {
+        title: `${BRAND} · MENU`,
+        text: `${chip('Hi', `*${String(msg.pushName || 'Boss').slice(0, 25)}*`)}\n${chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`)}\n${chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`)}\n\n${sect('📂 Menu')} — පහළ button එකෙන් තෝරන්න 👇`,
+        buttonText: '📂 CATEGORIES ⬇️',
+        sections: ui.sectionsOf(catRows, 'MENU'),
+    });
+    if (sentList?.key?.id) { menuState.set(jid, { id: sentList.key.id, at: Date.now() }); return; }
+    // 🧊 v3.08 TIER 2 — interactive-first: native card (photo header + tap-to-open category list) → classic photo+caption fallback
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · MENU`,
         text: `${chip('Hi', `*${String(msg.pushName || 'Boss').slice(0, 25)}*`)}\n${chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`)}\n${chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`)}\n\n${sect('📂 Menu')} — පහළ button එකෙන් තෝරන්න 👇`,
@@ -753,8 +792,16 @@ async function handleSetting(send, jid, msg, arg) {
         if (!done) return send(jid, { text: '❌ 1 – 10 අතර number එකක් reply කරන්න' }, { quoted: msg });
         await send(jid, { text: '✅ ' + done }, { quoted: msg });   // toggle confirm → පස්සේ panel refresh
     }
-    // 🧊 v3.08 interactive-first: caption එකේම 1-10 rows native list එකක් වෙනවා — tap → .setting <n>
+    // 🔘 v3.10 TIER 1 — REAL button list (tap → .setting <n>)
     const rows = settingCaption().split('\n').map((l) => { const m = l.match(/^\s*(\d{1,2})\s*\|\s*(.+)$/); return m ? { title: `${m[1]} · ${m[2]}`, id: `.setting ${m[1]}` } : null; }).filter(Boolean);
+    const sentList = await sendListPanel(send, jid, msg, {
+        title: `${BRAND} · SETTINGS`,
+        text: settingCaption().split('\n\n')[0],   // header + live status block
+        buttonText: '⚙️ OPTIONS ⬇️',
+        sections: ui.sectionsOf(rows, 'SETTINGS'),
+    });
+    if (sentList?.key?.id) { settingState.set(jid, { id: sentList.key.id, at: Date.now() }); return; }
+    // 🧊 v3.08 TIER 2 — interactive-first: caption එකේම 1-10 rows native list එකක් වෙනවා — tap → .setting <n>
     const bm = menuMedia();
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · SETTINGS`,
@@ -916,6 +963,15 @@ async function handleMode(send, jid, msg, arg) {
     const cur = guard.chatMode(), aiOn = guard.aiChatOn(), aim = guard.aiMode();
     const rows = modeCaption().split('\n').map((l) => { const m = l.match(/\*(\d{1,2})\s*\|\*\s*(.+)$/); return m ? { title: `${m[1]} · ${m[2]}`, id: `.mode ${m[1]}` } : null; }).filter(Boolean);
     const bm = menuMedia();
+    // 🔘 v3.10 TIER 1 — REAL button list (tap → .mode <n>)
+    const sentList = await sendListPanel(send, jid, msg, {
+        title: `${BRAND} · MODE`,
+        text: `${chip('Work', cur.toUpperCase())}\n${chip('AI Chat', `${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})`)}\n\n${sect('🛡️ Modes')} — පහළ button එකෙන් තෝරන්න 👇`,
+        buttonText: '🛡️ MODES ⬇️',
+        sections: ui.sectionsOf(rows, 'MODES'),
+    });
+    if (sentList?.key?.id) { modeState.set(jid, { id: sentList.key.id, at: Date.now() }); return; }
+    // 🧊 TIER 2 — interactive card (photo header)
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · MODE`,
         text: `${chip('Work', cur.toUpperCase())}\n${chip('AI Chat', `${aiOn ? 'ON ✅' : 'OFF ❌'} (${aim.replace(/_/g, ' ')})`)}\n\n${sect('🛡️ Modes')} — පහළ button එකෙන් තෝරන්න 👇`,

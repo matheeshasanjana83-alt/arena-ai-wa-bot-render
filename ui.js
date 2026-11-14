@@ -23,6 +23,9 @@ const DIV2 = '⌯ ━━━━━━━━━━━━━ ⌯';
 
 /** pure: interactive tap → baked command id (null when not ours / not parseable) */
 function parseTap(message) {
+    // v3.10 REAL BUTTON MENU — listMessage button response (listResponseMessage) — interactiveResponseMessage ට වෙනස් wire shape
+    const lr = message?.listResponseMessage?.singleSelectReply?.selectedRowId;
+    if (lr) { const id = String(lr).trim(); return id.startsWith('.') ? id.slice(0, 300) : null; }
     const pj = message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
     if (!pj) return null;
     try {
@@ -53,6 +56,33 @@ function ctaJson(text, url) {
     const u = String(url || '').trim();
     if (!/^https?:\/\//i.test(u)) return null;
     return { display_text: String(text || 'Open').slice(0, 48), url: u, merchant_url: u };
+}
+
+/**
+ * v3.10 REAL BUTTON MENU — proto listMessage (the classic WhatsApp button-list UI).
+ * v3.08 interactiveMessage/native_flow card එක user ගේ client එකේ render වෙන්නේ නැති නිසා,
+ * ඒට වෙනස්ම message type එකක් — ListMessage (listType 1 = SINGLE_SELECT) — දැන් button
+ * menu එකේ FIRST try. viewOnceMessage wrapper එක list render වෙන්න ඕනේම දෙයක්.
+ * sections = sectionsOf() output (≤10 rows each). returns null → caller falls back.
+ */
+function listContent({ title, text, footer, buttonText, sections }) {
+    const secs = Array.isArray(sections) ? sections.filter((s) => s?.rows?.length).slice(0, 10) : [];
+    if (!secs.length) return null;
+    return {
+        viewOnceMessage: {
+            message: {
+                messageContextInfo: { deviceListMetadataVersion: 2, deviceListMetadata: {} },
+                listMessage: {
+                    title: String(title || BRAND).slice(0, 60),
+                    text: String(text || ' ').slice(0, 1024),
+                    footerText: String(footer || '> ⚡ ' + BRAND).slice(0, 120),
+                    buttonText: String(buttonText || 'OPEN ⬇️').slice(0, 24),
+                    sections: secs,
+                    listType: 1,   // SINGLE_SELECT — tap → listResponseMessage(selectedRowId=rowId) → parseTap
+                },
+            },
+        },
+    };
 }
 
 /**
@@ -111,17 +141,22 @@ async function interactiveContent({ jid, upload, image, title, text, footer, sec
  *    status ≥ SERVER_ACK) window එක ඇතුළට නැත්නම් caller throw කරලා classic card එක යවනවා —
  * interactive card එකක් කවදාවත් silent නෝනා දෙන්නෙ නෑ. */
 
-/** binary nodes the official client emits for native-flow interactive messages (itsukichan/button-helper shape) */
-function flowNodes(jid) {
-    const nodes = [{
-        tag: 'biz',
-        attrs: {},
-        content: [{
-            tag: 'interactive',
-            attrs: { type: 'native_flow', v: '1' },
-            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }],
-        }],
-    }];
+/** binary nodes the official client emits for native-flow interactive messages (itsukichan/button-helper shape).
+ * v3.10: { list:true } → listMessage is NOT a native_flow interactive — biz/interactive node එක SKIP කරනවා
+ * (private chats වලට bot node එක විතරක් — buttons render වෙන්න ඒක ඕනේම). */
+function flowNodes(jid, { list = false } = {}) {
+    const nodes = [];
+    if (!list) {
+        nodes.push({
+            tag: 'biz',
+            attrs: {},
+            content: [{
+                tag: 'interactive',
+                attrs: { type: 'native_flow', v: '1' },
+                content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }],
+            }],
+        });
+    }
     const srv = String(jid || '').split('@')[1] || '';
     if (srv && !srv.endsWith('g.us') && srv !== 'broadcast') {
         nodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });   // private chats need the bot node — buttons don't render without it
@@ -148,4 +183,4 @@ function ackWait(id, ms = 8000) {
     });
 }
 
-module.exports = { parseTap, sectionsOf, ctaJson, interactiveContent, cap, DIV2, flowNodes, ackWait, ackResolve, _reset: () => { B = null; } };
+module.exports = { parseTap, sectionsOf, ctaJson, interactiveContent, listContent, cap, DIV2, flowNodes, ackWait, ackResolve, _reset: () => { B = null; } };

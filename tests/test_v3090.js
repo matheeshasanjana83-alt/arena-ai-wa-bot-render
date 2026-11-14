@@ -1,4 +1,4 @@
-/* test_v3090 — v3.09.0 🧊 PREMIUM CLASSIC OVERHAUL (user: "ඔබ මම කිවු කිසි දෙයක් කරලා නෑ" —
+/* test_v3090 — v3.10.0 🧊 PREMIUM CLASSIC OVERHAUL (user: "ඔබ මම කිවු කිසි දෙයක් කරලා නෑ" —
  *  v3.08 premium UI was interactive-first, user's WhatsApp client can't render native cards
  *  (screenshot proof: classic photo+caption menu at v3.08.1) → ALL the premium work was invisible.
  *  v3.09 rebuilds every VISIBLE surface (classic text the user actually sees) in one premium frame language):
@@ -12,7 +12,7 @@
  *   (5) .mode panel — premium header + ᴡᴏʀᴋ/ᴀɪ ᴄʜᴀᴛ chips, *N |* option lines identical (v241 + tap rows still parse)
  *   (6) .alive / .version / HELP — same frame language
  *   (7) interactive bodies (.menu/.mode native card text) speak the same chips — one voice, both paths
- *   (8) version pins 3.09.0 (pkg + lock + manifest), notes opens v3.09.0, manifest.files += this suite
+ *   (8) version pins 3.10.0 (pkg + lock + manifest), notes opens v3.10.0, manifest.files += this suite
  *   (9) rebrand holds — no brand-kaviz regressions
  */
 process.env.ARENA_NO_DELAY = '1'; process.env.ARENA_NO_REACT = '1';
@@ -80,10 +80,10 @@ const bot = require(path.join(REPO, 'bot.js'));
     const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
     const lock = JSON.parse(fs.readFileSync(path.join(REPO, 'package-lock.json'), 'utf8'));
     const man = JSON.parse(fs.readFileSync(path.join(REPO, 'manifest.json'), 'utf8'));
-    t('pkg 3.09.0', pkg.version === '3.09.0');
-    t('lock 3.09.0', lock.version === '3.09.0' && lock.packages[''].version === '3.09.0');
-    t('manifest 3.09.0', man.version === '3.09.0');
-    t('manifest.notes opens v3.09.0', typeof man.notes === 'string' && man.notes.startsWith('v3.09.0:'));
+    t('pkg 3.10.0', pkg.version === '3.10.0');
+    t('lock 3.10.0', lock.version === '3.10.0' && lock.packages[''].version === '3.10.0');
+    t('manifest 3.10.0', man.version === '3.10.0');
+    t('manifest.notes opens v3.10.0', typeof man.notes === 'string' && man.notes.startsWith('v3.10.0:'));
     t('manifest.files += tests/test_v3090.js', man.files.includes('tests/test_v3090.js'));
 
     console.log('── (9) rebrand holds ──');

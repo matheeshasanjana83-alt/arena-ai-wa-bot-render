@@ -91,8 +91,8 @@ console.log('── (2) fail-safe builders ──');
     t('.mode rows built from the caption itself', BOT.includes("const rows = modeCaption().split('\\n')"));
     t('.mode interactive body reuses live cur/aiOn/aim values', BOT.includes('const cur = guard.chatMode(), aiOn = guard.aiChatOn(), aim = guard.aiMode();'));
     t('menu tap ids route to existing .menu <n> handler (no duplicate logic)', BOT.includes("id: `.menu ${i + 1}`"));
-    t('send wrapper relays interactive content itself (pacing + sentIds + remember kept)', /if \(content\?\.viewOnceMessage\?\.message\?\.interactiveMessage\) \{[\s\S]{0,700}?generateWAMessageFromContent\(jid, content, \{ userJid: ME\.pn \|\| jid, quoted: opts\?\.quoted \}\)[\s\S]{0,700}?relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id, additionalNodes: nodes \}\)/.test(BOT));
-    t('relay path registers sentIds + remember (self-dedupe + stale-card guidance intact)', /interactiveMessage\) \{[\s\S]{0,900}?sentIds\.add\(s\.key\.id\)/.test(BOT));
+    t('send wrapper relays native content itself — interactive AND v3.10 listMessage (pacing + sentIds + remember kept)', /if \(isInt \|\| isList\) \{[\s\S]{0,700}?generateWAMessageFromContent\(jid, content, \{ userJid: ME\.pn \|\| jid, quoted: opts\?\.quoted \}\)[\s\S]{0,700}?relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id, additionalNodes: nodes \}\)/.test(BOT) && BOT.includes('const isList = !!(content?.viewOnceMessage?.message?.listMessage)') && BOT.includes('const isInt = !!(content?.viewOnceMessage?.message?.interactiveMessage)'));
+    t('relay path registers sentIds + remember (self-dedupe + stale-card guidance intact)', /\(isInt \|\| isList\) \{[\s\S]{0,1600}?sentIds\.add\(s\.key\.id\)/.test(BOT));
 
     console.log('── (5) moviedex wiring ──');
     t('handle ctx += ui + upload', MV.includes('const { send, jid, msg, rest, react, ui, upload } = ctx;'));
@@ -114,10 +114,10 @@ console.log('── (2) fail-safe builders ──');
     t('HELP advertises the v3.08 premium UI', BOT.includes('🧊 v3.08 premium UI'));
 
     console.log('── (7) version pins ──');
-    t('pkg 3.08.1', pkg.version === '3.09.0');
-    t('lock 3.08.1', lock.version === '3.09.0');
-    t('manifest 3.08.1', man.version === '3.09.0');
-    t('manifest.notes opens v3.09.0', typeof man.notes === 'string' && man.notes.startsWith('v3.09.0:'));
+    t('pkg 3.08.1', pkg.version === '3.10.0');
+    t('lock 3.08.1', lock.version === '3.10.0');
+    t('manifest 3.08.1', man.version === '3.10.0');
+    t('manifest.notes opens v3.10.0', typeof man.notes === 'string' && man.notes.startsWith('v3.10.0:'));
     t('manifest.files += ui.js', man.files.includes('ui.js'));
     t('manifest.files += tests/test_v3080.js', man.files.includes('tests/test_v3080.js'));
 
@@ -143,8 +143,8 @@ console.log('── (2) fail-safe builders ──');
     t('ackWait timeout with no receipt → false (classic fallback fires)', await ackP3 === false);
     t('ackWait: empty id → true (never blocks a flow)', await ui.ackWait('') === true);
     // bot.js wiring — the two silent-drop guards
-    t('relayMessage passes additionalNodes (biz/bot binary nodes on the wire)', /relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id, additionalNodes: nodes \}\)/.test(BOT) && BOT.includes('ui.flowNodes(jid)'));
-    t('never-silent: no server receipt → throw → sendInteractivePanel catch → classic card', BOT.includes("throw new Error('interactive card not accepted — classic fallback')") && BOT.includes("server receipt නෑ (8s)"));
+    t('relayMessage passes additionalNodes (biz/bot binary nodes on the wire — v3.10 list mode flag too)', /relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id, additionalNodes: nodes \}\)/.test(BOT) && BOT.includes('ui.flowNodes(jid, { list: isList })'));
+    t('never-silent: no server receipt → throw → panel catch → next-tier fallback (v3.10 unified wording)', BOT.includes("throw new Error('native card not accepted — fallback')") && BOT.includes("server receipt නෑ (8s)"));
     t('messages.update listener feeds ackResolve (server receipts)', BOT.includes("sock.ev.on('messages.update'") && BOT.includes('ui.ackResolve(key.id, update?.status)'));
 
     console.log('── (9) rebrand holds ──');
