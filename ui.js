@@ -101,4 +101,51 @@ async function interactiveContent({ jid, upload, image, title, text, footer, sec
     } catch { return null; }
 }
 
-module.exports = { parseTap, sectionsOf, ctaJson, interactiveContent, cap, DIV2, _reset: () => { B = null; } };
+/* ── v3.08.1 🚚 DELIVERY LAYER — relayMessage silent-drop fix ─────────────
+ * v3.08.0 bug: interactive card relay එක "success" (error නෑ) ඒත් WhatsApp client එකේ
+ * card එක පේන්නෙ නෑ → .menu silent. Root cause: official WhatsApp client එක interactive
+ * messages සමඟ biz/interactive/native_flow binary nodes (private chat නම් bot node එකත්)
+ * relay කරනවා — අපි දුන්නෙ නෑ → server accept කරනවා ඒත් render කරන්නෙ නෑ.
+ * ① flowNodes(jid) — relayMessage එකට දෙන additionalNodes (official client traffic mirror).
+ * ② ackWait/ackResolve — relay "OK" = socket write විතරයි; server receipt (messages.update
+ *    status ≥ SERVER_ACK) window එක ඇතුළට නැත්නම් caller throw කරලා classic card එක යවනවා —
+ * interactive card එකක් කවදාවත් silent නෝනා දෙන්නෙ නෑ. */
+
+/** binary nodes the official client emits for native-flow interactive messages (itsukichan/button-helper shape) */
+function flowNodes(jid) {
+    const nodes = [{
+        tag: 'biz',
+        attrs: {},
+        content: [{
+            tag: 'interactive',
+            attrs: { type: 'native_flow', v: '1' },
+            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }],
+        }],
+    }];
+    const srv = String(jid || '').split('@')[1] || '';
+    if (srv && !srv.endsWith('g.us') && srv !== 'broadcast') {
+        nodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });   // private chats need the bot node — buttons don't render without it
+    }
+    return nodes;
+}
+
+/** message id → resolve(true) on server receipt · resolve(false) when the window closes */
+const ackWaiters = new Map();
+function ackResolve(id, status) {
+    const w = ackWaiters.get(String(id || ''));
+    if (w && Number(status || 0) >= 1) {   // ≥ SERVER_ACK = server එක accept කළා
+        ackWaiters.delete(String(id));
+        w(true);
+    }
+}
+function ackWait(id, ms = 8000) {
+    const key = String(id || '');
+    if (!key) return Promise.resolve(true);   // no id → don't block the flow
+    return new Promise((resolve) => {
+        const t = setTimeout(() => { ackWaiters.delete(key); resolve(false); }, ms);
+        t.unref?.();
+        ackWaiters.set(key, (ok) => { clearTimeout(t); resolve(ok); });
+    });
+}
+
+module.exports = { parseTap, sectionsOf, ctaJson, interactiveContent, cap, DIV2, flowNodes, ackWait, ackResolve, _reset: () => { B = null; } };

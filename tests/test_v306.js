@@ -22,9 +22,9 @@ const checkA = async (n, fn, soft) => { try { await fn(); ok(n); } catch (e) { i
 
     // [1] version pins
     check('[1] version 3.06.5 pkg+manifest + manifest lists test_v306.js', () => {
-        assert.strictEqual(require('../package.json').version, '3.08.0', 'pkg version');
+        assert.strictEqual(require('../package.json').version, '3.08.1', 'pkg version');
         const m = JSON.parse(fs.readFileSync(path.join(R, 'manifest.json'), 'utf8'));
-        assert.strictEqual(m.version, '3.08.0', 'manifest version');
+        assert.strictEqual(m.version, '3.08.1', 'manifest version');
         assert(m.files.includes('tests/test_v306.js'), 'manifest.files missing test_v306.js');
         assert(m.notes.includes('PREMIUM UI'), 'manifest.notes marker (re-pinned v3.08)');
     });

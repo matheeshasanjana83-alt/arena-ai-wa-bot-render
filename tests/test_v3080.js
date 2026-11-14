@@ -1,6 +1,6 @@
 /**
- * test_v3080.js — v3.08.0 🧊 PREMIUM UI + NEW WHATSAPP API (user: "ඔකෙ flows ටික ලස්සනට premium
- * look එකකින් · අලුත්ම whatsapp api · v3.08 ලොකුම ලොකු වෙනසක් · ai වලින් හැදුවා කියලා හදුන ගන්න බැරි වෙන්න")
+ * test_v3080.js — v3.08.1 🧊 PREMIUM UI + NEW WHATSAPP API + 🚚 DELIVERY FIX (v3.08.0 silent .menu bug:
+ *  "මෙනු කියලා ගැහුවට menu එක එන්නෙ නෑ" — relayMessage OK ≠ delivered: official client biz/bot binary nodes missing)
  *
  *  Asserts:
  *   (1) ui.js engine — parseTap / sectionsOf chunking (10-cap + labels) / ctaJson guard / footer BRAND
@@ -12,8 +12,10 @@
  *   (5) moviedex wiring — ctx ui/upload, sendInteractive helper, ONE-card poster quality menu with
  *       WYSIWYG numbering, search results tap-card replaces the number list (≤20) + full text list for >20
  *   (6) style.js premium kit — THIN / sm() small-caps / sect() header, .keys + .moviedex usage rebuilt
- *   (7) version pins 3.08.0 (pkg + lock + manifest), notes opens v3.08.0, manifest.files += ui.js + this suite
- *   (8) rebrand holds — no brand-kaviz regressions (nickname lines whitelisted like v309)
+ *   (7) version pins 3.08.1 (pkg + lock + manifest), notes opens v3.08.1, manifest.files += ui.js + this suite
+ *   (8) delivery layer — flowNodes(jid) biz/bot binary node shapes + ackWait/ackResolve never-silent
+ *       semantics + bot.js relay wiring (additionalNodes + server-receipt throw → classic fallback)
+ *   (9) rebrand holds — no brand-kaviz regressions (nickname lines whitelisted like v309)
  */
 const fs = require('fs');
 const path = require('path');
@@ -89,7 +91,7 @@ console.log('── (2) fail-safe builders ──');
     t('.mode rows built from the caption itself', BOT.includes("const rows = modeCaption().split('\\n')"));
     t('.mode interactive body reuses live cur/aiOn/aim values', BOT.includes('const cur = guard.chatMode(), aiOn = guard.aiChatOn(), aim = guard.aiMode();'));
     t('menu tap ids route to existing .menu <n> handler (no duplicate logic)', BOT.includes("id: `.menu ${i + 1}`"));
-    t('send wrapper relays interactive content itself (pacing + sentIds + remember kept)', /if \(content\?\.viewOnceMessage\?\.message\?\.interactiveMessage\) \{[\s\S]{0,700}?generateWAMessageFromContent\(jid, content, \{ userJid: ME\.pn \|\| jid, quoted: opts\?\.quoted \}\)[\s\S]{0,300}?relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id \}\)/.test(BOT));
+    t('send wrapper relays interactive content itself (pacing + sentIds + remember kept)', /if \(content\?\.viewOnceMessage\?\.message\?\.interactiveMessage\) \{[\s\S]{0,700}?generateWAMessageFromContent\(jid, content, \{ userJid: ME\.pn \|\| jid, quoted: opts\?\.quoted \}\)[\s\S]{0,700}?relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id, additionalNodes: nodes \}\)/.test(BOT));
     t('relay path registers sentIds + remember (self-dedupe + stale-card guidance intact)', /interactiveMessage\) \{[\s\S]{0,900}?sentIds\.add\(s\.key\.id\)/.test(BOT));
 
     console.log('── (5) moviedex wiring ──');
@@ -112,14 +114,40 @@ console.log('── (2) fail-safe builders ──');
     t('HELP advertises the v3.08 premium UI', BOT.includes('🧊 v3.08 premium UI'));
 
     console.log('── (7) version pins ──');
-    t('pkg 3.08.0', pkg.version === '3.08.0');
-    t('lock 3.08.0', lock.version === '3.08.0');
-    t('manifest 3.08.0', man.version === '3.08.0');
-    t('manifest.notes opens v3.08.0', typeof man.notes === 'string' && man.notes.startsWith('v3.08.0:'));
+    t('pkg 3.08.1', pkg.version === '3.08.1');
+    t('lock 3.08.1', lock.version === '3.08.1');
+    t('manifest 3.08.1', man.version === '3.08.1');
+    t('manifest.notes opens v3.08.1', typeof man.notes === 'string' && man.notes.startsWith('v3.08.1:'));
     t('manifest.files += ui.js', man.files.includes('ui.js'));
     t('manifest.files += tests/test_v3080.js', man.files.includes('tests/test_v3080.js'));
 
-    console.log('── (8) rebrand holds ──');
+    console.log('── (8) delivery layer — never-silent interactive cards (v3.08.1) ──');
+    const priv = ui.flowNodes('94771234567@s.whatsapp.net');
+    t('flowNodes private: biz + bot nodes', priv.length === 2 && priv[0].tag === 'biz' && priv[1].tag === 'bot');
+    t('flowNodes biz node mirrors official client (interactive v1 > native_flow v9 mixed)', priv[0].content?.[0]?.tag === 'interactive' && priv[0].content?.[0]?.attrs?.type === 'native_flow' && priv[0].content?.[0]?.content?.[0]?.attrs?.v === '9' && priv[0].content?.[0]?.content?.[0]?.attrs?.name === 'mixed');
+    t('flowNodes private: bot node biz_bot=1 (buttons don\'t render without it)', priv[1].attrs?.biz_bot === '1');
+    const grp = ui.flowNodes('120363xxxxxxxx@g.us');
+    t('flowNodes group: biz only (no bot node)', grp.length === 1 && grp[0].tag === 'biz');
+    t('flowNodes junk jid still safe (biz only)', ui.flowNodes('').length === 1);
+    // ack semantics — status 0 (PENDING) must NOT resolve, status 1 (SERVER_ACK) must resolve(true)
+    const ackP1 = ui.ackWait('ack-a', 50);
+    ui.ackResolve('ack-a', 0);
+    ui.ackResolve('ack-a', 1);
+    t('ackResolve: status 0 ignored · status 1 SERVER_ACK resolves true', await ackP1 === true);
+    const ackP2 = ui.ackWait('ack-b', 60);
+    setTimeout(() => ui.ackResolve('ack-b', 1), 20);
+    t('ackResolve: late receipt (20ms < window) resolves true', await ackP2 === true);
+    const ackP3 = ui.ackWait('ack-c', 60);
+    // keepalive — ack timers are unref()'d (shutdown-safe in the bot), a ref'd timer keeps this standalone suite alive
+    await new Promise((r) => setTimeout(r, 100));
+    t('ackWait timeout with no receipt → false (classic fallback fires)', await ackP3 === false);
+    t('ackWait: empty id → true (never blocks a flow)', await ui.ackWait('') === true);
+    // bot.js wiring — the two silent-drop guards
+    t('relayMessage passes additionalNodes (biz/bot binary nodes on the wire)', /relayMessage\(jid, wa\.message, \{ messageId: wa\.key\.id, additionalNodes: nodes \}\)/.test(BOT) && BOT.includes('ui.flowNodes(jid)'));
+    t('never-silent: no server receipt → throw → sendInteractivePanel catch → classic card', BOT.includes("throw new Error('interactive card not accepted — classic fallback')") && BOT.includes("server receipt නෑ (8s)"));
+    t('messages.update listener feeds ackResolve (server receipts)', BOT.includes("sock.ev.on('messages.update'") && BOT.includes('ui.ackResolve(key.id, update?.status)'));
+
+    console.log('── (9) rebrand holds ──');
     const noNick = (src) => src.split('\n').filter((l) => !/\u0d9a\u0dc0\u0dd2\u0dc3\u0dca|\u0db6\u0da7\u0dd2\u0dc3\u0dca\u0da7\u0dcf|\ud83c\udff7\ufe0f/.test(l)).join('\n');   // කවිස්/බටිස්ටා/🏷️ nickname lines
     const leaks = fs.readdirSync(REPO).filter((f) => f.endsWith('.js') && /kaviz/i.test(noNick(fs.readFileSync(path.join(REPO, f), 'utf8'))));
     t('zero brand-kaviz in runtime .js (nickname lines whitelisted)', leaks.length === 0);

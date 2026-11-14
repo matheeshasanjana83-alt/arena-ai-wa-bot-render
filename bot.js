@@ -242,8 +242,19 @@ async function start() {
         if (content?.viewOnceMessage?.message?.interactiveMessage) {
             const b = await loadBaileys();
             const wa = b.generateWAMessageFromContent(jid, content, { userJid: ME.pn || jid, quoted: opts?.quoted });
-            const s = await pace(async () => { await SOCK.relayMessage(jid, wa.message, { messageId: wa.key.id }); return wa; }, parseInt(process.env.ARENA_TEXT_TIMEOUT || '60000', 10)).catch((e) => { log(`📤 interactive relay fail: ${e.message}`); throw e; });
+            // 🚚 v3.08.1 FIX (v3.08.0 silent .menu): interactive relay එකට official client එක emit කරන
+            // biz/interactive/native_flow binary nodes (+ private chat නම් bot node) ඕනේම — නැත්නම්
+            // server accept කරනවා ඒත් client එකේ card එක render වෙන්නෙ නෑ. flowNodes() = that node set.
+            const nodes = ui.flowNodes(jid);
+            const s = await pace(async () => { await SOCK.relayMessage(jid, wa.message, { messageId: wa.key.id, additionalNodes: nodes }); return wa; }, parseInt(process.env.ARENA_TEXT_TIMEOUT || '60000', 10)).catch((e) => { log(`📤 interactive relay fail: ${e.message}`); throw e; });
             if (s?.key?.id) { sentIds.add(s.key.id); if (sentIds.size > 500) sentIds.delete(sentIds.values().next().value); remember(s); }
+            // 🚚 v3.08.1 NEVER-SILENT: relay "OK" = socket write විතරයි — server receipt (messages.update
+            // status ≥ SERVER_ACK) 8s ඇතුළට නැත්නම් throw → sendInteractivePanel catch → classic card.
+            // interactive fail එකක් flow එකක් කවදාවත් silent කරන්නෙ නෑ (v3.08 rule එක දැන් wire level එකෙනුත් තහවුරු).
+            if (s?.key?.id && !(await ui.ackWait(s.key.id, parseInt(process.env.ARENA_ACK_WAIT || '8000', 10)))) {
+                log('📤 interactive card — server receipt නෑ (8s) → classic fallback');
+                throw new Error('interactive card not accepted — classic fallback');
+            }
             return s;
         }
         // v2.30: media uploads get a hard timeout — one hung 200MB document used to
@@ -333,6 +344,8 @@ async function start() {
     });
 
     sock.ev.on('messages.upsert', (u) => onMessages(u, send, (key) => sock.sendMessage(key.remoteJid, { delete: key }).catch(() => { })));
+    // 🚚 v3.08.1 — server receipts → interactive-card ack waiters (never-silent delivery check; ui.ackWait resolve(false) = timeout)
+    sock.ev.on('messages.update', (u) => { for (const { key, update } of u || []) if (key?.id) ui.ackResolve(key.id, update?.status); });
 }
 
 async function onMessages({ messages, type }, send, del = async () => { }) {
