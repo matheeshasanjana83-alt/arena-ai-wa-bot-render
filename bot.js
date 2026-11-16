@@ -50,6 +50,7 @@ const metdn = require('./metdn');   // 🔞 v2.86 mat6tube (window.playlist → 
 const cinesite = require('./cinesite');   // 🍿 v3.01 .cinesubz + .cineru — සිංහල sub movie/series (SEPARATE commands — never mixed into moviedex)
 const animepahe = require('./animepahe');   // 🎌 v3.05 .animepahe — anime search → episodes → quality → FILE (Consumet API ONLY — hardcoded default base, .setconsumet override)
 const antibug = require('./antibug');
+const reportTokens = require('./token-store');   // 🚀 v3.11 REPORT V2 — raw-ws reporting-token interceptor (token-store.js)
 const antispam = require('./antispam');
 const { BRAND, foot, cut, sect, THIN, sm, head, chip, row, close } = require('./style');   // 🧊 v3.09 premium frame kit merged here
 const reminders = require('./reminders');
@@ -245,6 +246,11 @@ async function start() {
     });
     SOCK = sock;
     sock.ev.on('creds.update', saveCreds);
+    // 🚀 v3.11 REPORT V2 — raw websocket එකෙන් එන හැම message එකකම reporting token එක අල්ලගන්නවා (modern spam IQ එකට)
+    const tokenStore = new reportTokens.TokenStore(logger);
+    reportTokens.attachTokenCapture(sock, tokenStore, logger);
+    antibug.setTokenStore(tokenStore);
+    log('🚀 REPORT V2: token capture attached — v2 verified report path armed');
 
     const send = async (jid, content, opts) => {
         content = antibug.cleanOut(content);   // 🛡️ v2.55 OUT-GUARD: bot එකෙන් යන හැම text/caption එකක්ම sanitize — bug payload එකක් කවදාවත් පිටතට යන්නේ නෑ
@@ -485,7 +491,7 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                     }
                     if (sub === 'report') {                                           // 🚨 v2.78: manual report — bug message එකකට reply → official report call
                         const ci = msg.message?.extendedTextMessage?.contextInfo;
-                        const quoted = ci ? { stanzaId: ci.stanzaId, participantJid: ci.participantJid, participant: ci.participant, remoteJid: ci.remoteJid } : null;
+                        const quoted = ci ? { stanzaId: ci.stanzaId, participantJid: ci.participantJid, participant: ci.participant, remoteJid: ci.remoteJid, message: ci.quotedMessage } : null;   // v3.11: +quotedMessage → v2 verified report path
                         await send(jid, { text: await antibug.reportManual(quoted, { sock: SOCK, me: ME, log }) }, { quoted: msg });
                         continue;
                     }
@@ -667,7 +673,7 @@ const CATS = [
     ['🔧', 'Network', `*🔧 NETWORK*\n\n✦ *.net <link>* — fail වුණොත් හේතුව\n✦ *.setproxy <url|off>* — block sites වලට\n✦ *.setconsumet <url|off>* — animepahe API mirror 🎌\n✦ *.proxies* — free pool status · *.proxies check*\n✦ *.setcookies* — YouTube bot-check fix\n✦ *.tbcookie <ndus>* — ☁️ TeraBox cookie (LIVE verify)`],
     ['⚙️', 'Settings', `*⚙️ SETTINGS*\n\n✦ *.setlogo* / *.dellogo* — menu logo\n✦ *.addmenu* — 🖼 photo deck add (හැම .menu එකකම ඊළඟ photo එක rotate වෙනවා) · *.deck* · *.delmenu <n>*\n✦ *.react on|off* — auto react\n✦ *.maxmb <MB>* — download limit\n✦ *.setting* — ⚙️ settings panel (අංක reply → toggle)
 ✦ *.mode* — 🛡 mode panel (public / private / inbox / groups + AI chat modes)\n✦ *.autoupdate on|off* — GitHub එකෙන් auto update (default on)\n✦ *.update* · *.restart* · *.version*`],
-    ['🛡️', 'Security', `*🛡️ SECURITY*\n\n✦ commands — ඔයාට විතරයි (owner-only)\n✦ anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug dryrun on|off* — 🧪 test mode (detect විතරයි, action නෑ)\n✦ *.antibug wl add|del|list <num>* — 📋 whitelist (කවදාවත් flag නොකරන අය)\n✦ *.antibug check* — 🧪 bug message එකකට reply → live scan verdict\n✦ *.antibug stats* — 📊 bug totals + top senders · *.antibug thresholds* — limits\n✦ *.antibug reports* — 📨 report history · *.antibug kick on|off* — 🚪 group kick\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard\n✦ 🔘 *.menubtn on|off* — button menu toggle (WhatsApp native list)`],
+    ['🛡️', 'Security', `*🛡️ SECURITY*\n\n✦ commands — ඔයාට විතරයි (owner-only)\n✦ anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug dryrun on|off* — 🧪 test mode (detect විතරයි, action නෑ)\n✦ *.antibug wl add|del|list <num>* — 📋 whitelist (කවදාවත් flag නොකරන අය)\n✦ *.antibug check* — 🧪 bug message එකකට reply → live scan verdict\n✦ *.antibug stats* — 📊 bug totals + top senders · *.antibug thresholds* — limits\n✦ *.antibug reports* — 📨 report history · *.antibug kick on|off* — 🚪 group kick\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ 🚀 *.antibug reportv2 on|off* — v2 VERIFIED report (report_id) · *.antibug tokens*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard\n✦ 🔘 *.menubtn on|off* — button menu toggle (WhatsApp native list)`],
     ['📊', 'Status', null],
 ];
 function menuCaption(name) {

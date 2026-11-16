@@ -35,8 +35,8 @@ const polliSrc = fs.readFileSync(__dirname + '/../pollinations.js', 'utf8');
 (async () => {
     console.log('— v3.05.0 pins + source markers —');
     ok('version 3.05.0 pkg+manifest · notes headline · manifest lists test_v300.js', () => {
-        assert.strictEqual(pkg.version, '3.10.0', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.10.0', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.11.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.11.0', 'manifest ' + manifest.version);
         assert.ok(/^v\d+\.\d+\.\d+:/m.test(manifest.notes), 'notes headline (latest entry opens notes — history trimmed by design)');
         assert.ok(manifest.files.includes('tests/test_v300.js'), 'manifest lists test_v300.js');
     });

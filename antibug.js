@@ -32,6 +32,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const rptModern = require('./report');      // 🚀 v3.11 REPORT V2 — modern spam IQ sender (user-provided module)
 
 const SET = path.join(__dirname, 'settings.json');
 const readSet = () => { try { return JSON.parse(fs.readFileSync(SET, 'utf8')); } catch { return {}; } };
@@ -48,6 +49,7 @@ function cfg() {
         dailyCap: clampCount(a.dailyCap || 20),          // v2.55: 24h report budget (WhatsApp mass-report spam-flag guard)
         dryrun: a.dryrun === true,                        // v3.10 🧪 detect-only test mode — delete/block/report/report ඔක්කොම SKIP, catch/alert විතරයි
         kick: a.kick === true,                            // v3.10 🚪 severe bug (group) + bot admin → sender kick
+        reportV2: a.reportV2 !== false,                   // v3.11 🚀 modern spam-report IQ first (report_id VERIFIED) → legacy fallback
         wl: Array.isArray(a.wl) ? a.wl.map(String) : [],  // v3.10 📋 whitelist — කවදාවත් flag/block නොකරන numbers
     };
 }
@@ -123,10 +125,17 @@ function checkText(quoted) {
     return ['╭─❖ 🧪 *BUG CHECK* ❖', `│ ${verdict}`, ...why, ...(r.reasons.length ? [`│`, '│ 🧹 auto: delete → report → block (severe නම්)', '╰─ සැබෑ false-positive එකක් නම් .antibug wl add <num>'] : [])].join('\n');
 }
 
+// ── v3.11 tokens view — REPORT V2 interceptor state (token-store.js) ──
+function tokensText() {
+    if (!TOKENS) return '╭─❖ 📨 *REPORT TOKENS* ❖\n╰─ token capture attach වෙලා නෑ — bot එක restart කරලා බලන්න';
+    const s = TOKENS.stats();
+    return ['╭─❖ 📨 *REPORT TOKENS* ❖', `│ captured: ${s.captured} · දැනට store එකේ: ${s.stored} (cap 800)`, '│ token එකක් = ඒ message එකට v2 report (report_id VERIFIED) ගහන්න පුළුවන්', `│ v2 report: ${cfg().reportV2 ? '🚀 ON' : '❌ OFF'} — fail උනොත් legacy IQ auto-fallback`, '╰─ .antibug reportv2 on|off · .antibug reports — outcomes'].join('\n');
+}
+
 // ── v3.10 reports history (sachi-anticrasher port) — retaliation outcomes ──
 function reportsText() {
     const rows = state.reportsLog.slice(0, 10).map((e) =>
-        `│ ${whenStr(e.at)} · ${e.who}${e.kind ? ' (' + e.kind + ')' : ''} → report ${e.ok}/${e.want}${e.aborted ? ' ⛔abort' : ''}${e.blockedNow ? ' · ⛔ block ✅' : ''}${e.err ? '\n│   ⚠️ ' + e.err.slice(0, 60) : ''}`);
+        `│ ${whenStr(e.at)} · ${e.who}${e.kind ? ' (' + e.kind + ')' : ''} → report ${e.ok}/${e.want}${e.reportId ? ' · 🆔' + String(e.reportId).slice(0, 12) : ''}${e.aborted ? ' ⛔abort' : ''}${e.blockedNow ? ' · ⛔ block ✅' : ''}${e.err ? '\n│   ⚠️ ' + e.err.slice(0, 60) : ''}`);
     if (!rows.length) return '╭─❖ 📨 *REPORTS* ❖\n╰─ තාම report එකකුත් fire වෙලා නෑ (severe bug එකක් ආවාම auto)';
     return ['╭─❖ 📨 *REPORT HISTORY* ❖', ...rows, '╰─ .antibug reporttest — stanza path live test'].join('\n');
 }
@@ -348,6 +357,34 @@ const normJid = (j) => String(j || '').replace(/:\d+@/, '@');   // strip device 
 const TEST_FAST = process.env.ANTIBUG_TEST_FAST === '1';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// ── v3.11 🚀 REPORT V2 (user-provided modules: token.js · token-store.js · report.js) ──
+// modern spam IQ first → report_id VERIFIED from the server → legacy volley skipped (untilAccepted);
+// structural fail (no token/messageSecret) or transport fail ×N → legacy moderation IQ fallback (never silent).
+let TOKENS = null;                                            // TokenStore — bot.js boot එකේ attachTokenCapture + setTokenStore
+function setTokenStore(store) { TOKENS = store || null; }
+const V2_ATTEMPTS = 3, V2_DELAYS = [15000, 45000, 120000];    // untilAccepted retry chain (user module design)
+const V2_STRUCTURAL = /no reporting|no message key|could not encode|Cannot find module/;
+async function tryModern(sender, ctx, meta) {
+    const { sock } = ctx;
+    if (!sock || !meta || !meta.message || !meta.key || !meta.key.id) return null;   // message object නෑ → legacy path
+    let last = '';
+    for (let i = 0; i < V2_ATTEMPTS; i++) {
+        if (i > 0) await sleep(TEST_FAST ? 1 : V2_DELAYS[Math.min(i - 1, V2_DELAYS.length - 1)]);
+        let res;
+        try {
+            res = await rptModern.sendSpamReport(sock, {
+                message: meta.message, key: meta.key, timestampSec: meta.timestampSec,
+                senderJid: sender, chatJid: meta.chatJid || sender,
+                capturedToken: TOKENS && meta.key.id ? TOKENS.get(meta.key.id) : null,
+            });
+        } catch (e) { res = { ok: false, reason: String(e && e.message || e) }; }
+        if (res.ok) return { ok: true, reportId: res.reportId };
+        last = res.reason || res.errorText || 'fail';
+        if (V2_STRUCTURAL.test(last)) return { ok: false, reason: last };            // retrying won't help — legacy එකට
+    }
+    return { ok: false, reason: last };
+}
+
 /** raw WhatsApp "Report" — the same moderation IQ the official app sends when you report a message */
 function reportSpam(sock, sender, key) {
     return sock.query({
@@ -379,12 +416,12 @@ async function reportTest(ctx) {
         await reportSpam(sock, me.pn, key);
         logReport({ at: Date.now(), who: 'TEST(self)', want: 1, ok: 1, fails: 0, aborted: false, err: '', blockedNow: false, kind: 'test' });
         log('antibug reporttest: ACCEPTED');
-        return ['╭─❖ 🧪 *REPORT TEST* ❖', '│ ✅ stanza ACCEPTED — server එක ගත්තා', '│ (self-report = no-op — කිසිම දෙයක් වෙන්නේ නෑ)', '│', '╰─ ඒ කියන්නේ severe bug එකක් ආවොත් auto-report ×N ලෑන්ඩ් වෙනවා ✅'].join('\n');
+        return ['╭─❖ 🧪 *REPORT TEST* ❖', '│ ✅ stanza ACCEPTED — server එක ගත්තා', '│ (self-report = no-op — කිසිම දෙයක් වෙන්නේ නෑ)', `│ 📨 v2 path: ${cfg().reportV2 ? '🚀 armed' : 'OFF'} · tokens ${TOKENS ? TOKENS.stats().stored : 0}`, '│', '╰─ ඒ කියන්නේ severe bug එකක් ආවොත් auto-report ×N ලෑන්ඩ් වෙනවා ✅'].join('\n');
     } catch (e) {
         const err = String(e.message || '').slice(0, 140);
         logReport({ at: Date.now(), who: 'TEST(self)', want: 1, ok: 0, fails: 1, aborted: true, err, blockedNow: false, kind: 'test' });
         log('antibug reporttest: REJECTED — ' + err);
-        return ['╭─❖ 🧪 *REPORT TEST* ❖', `│ ❌ stanza REJECTED: ${err}`, '│ (මේක තමයි report ලෑන්ඩ් වෙන්නේ නැති නිසා — WhatsApp server මේ format එක දැන් ගන්නේ නෑ)', '╰─ ⛔ block එක තමයි guaranteed protection එක — ඒක දැනටමත් ON'].join('\n');
+        return ['╭─❖ 🧪 *REPORT TEST* ❖', `│ ❌ stanza REJECTED: ${err}`, '│ (මේක තමයි report ලෑන්ඩ් වෙන්නේ නැති නිසා — WhatsApp server මේ format එක දැන් ගන්නේ නෑ)', `│ 📨 v2 path: ${cfg().reportV2 ? '🚀 armed' : 'OFF'} · tokens ${TOKENS ? TOKENS.stats().stored : 0}`, '╰─ ⛔ block එක තමයි guaranteed protection එක — ඒක දැනටමත් ON'].join('\n');
     }
 }
 
@@ -396,6 +433,15 @@ async function reportManual(quoted, ctx) {
     if (!q.stanzaId || !(q.participantJid || q.participant)) return '❌ report කරන්න ඕන message එකකට *reply* කරලා `.antibug report` ගහන්න';
     const sender = q.participantJid || q.participant;
     const key = { remoteJid: q.remoteJid || me.pn, id: q.stanzaId, fromMe: false };
+    // 🚀 v3.11 REPORT V2: quoted message object එක තියෙනවා නම් modern IQ first — report_id VERIFIED (fail → legacy fallback)
+    if (cfg().reportV2 && q.message) {
+        const modern = await tryModern(sender, ctx, { message: q.message, key, timestampSec: Math.floor(Date.now() / 1000), chatJid: q.remoteJid || me.pn });
+        if (modern && modern.ok) {
+            logReport({ at: Date.now(), who: 'MANUAL:' + String(sender).split('@')[0], want: 1, ok: 1, fails: 0, aborted: false, err: '', blockedNow: false, kind: 'manual-v2', reportId: modern.reportId || '' });
+            log('antibug manual report v2 → ' + sender);
+            return ['╭─❖ 🚨 *REPORT SENT · v2* ❖', `│ 👤 ${String(sender).split('@')[0]}`, '│ ✅ WhatsApp එක report එක ගත්තා — VERIFIED', ...(modern.reportId ? [`│ 🆔 report_id: ${String(modern.reportId).slice(0, 16)}`] : []), '╰─ WhatsApp එක decide කරනවා ඒකෙන් මොකද වෙන්නේ කියලා'].join('\n');
+        }
+    }
     try {
         await reportSpam(sock, sender, key);
         logReport({ at: Date.now(), who: 'MANUAL:' + String(sender).split('@')[0], want: 1, ok: 1, fails: 0, aborted: false, err: '', blockedNow: false, kind: 'manual' });
@@ -425,9 +471,15 @@ async function retaliate(sender, ctx, meta = {}) {
     if (retaliated.has(sNorm) && Date.now() - retaliated.get(sNorm) < RETAL_COOLDOWN_MS) return { skip: 'cooldown' };
     retaliated.set(sNorm, Date.now());
     const asked = c.report ? c.reportCount : 0;
-    const want = Math.min(asked, reportBudget());                                // v2.55: 24h budget — mass-reporting gets the REPORTER flagged
+    let want = Math.min(asked, reportBudget());                                  // v2.55: 24h budget — mass-reporting gets the REPORTER flagged
     let ok = 0, blockedNow = false, blockErr = '', fails = 0, aborted = false, firstErr = '';
-    for (let i = 0; i < want; i++) {
+    let kind = '', reportId = '';
+    // 🚀 v3.11 REPORT V2: modern spam IQ first — report_id VERIFIED ආවොත් legacy volley එකම ඕන නෑ (untilAccepted)
+    if (asked > 0 && c.reportV2) {
+        const modern = await tryModern(sender, ctx, meta);
+        if (modern && modern.ok) { kind = 'v2'; reportId = modern.reportId || ''; want = 1; ok = 1; state.reports.push(Date.now()); saveState(); }   // v2 report = 1 report — 24h budget එකට count වෙනවා (anti-ban)
+    }
+    if (!kind) for (let i = 0; i < want; i++) {
         if (Date.now() < retalPauseUntil) { aborted = true; break; }
         try { await reportSpam(sock, sender, meta.key); ok++; fails = 0; state.reports.push(Date.now()); if (ok % 5 === 0) saveState(); }
         catch (e) {
@@ -446,14 +498,15 @@ async function retaliate(sender, ctx, meta = {}) {
         catch (e) { blockErr = e.message; log('antibug block: ' + e.message); }
     }
     // v2.77: persistent outcome — .antibug scan/status shows whether reports actually LAND
-    state.reportsLog.unshift({ at: Date.now(), who: sNorm.split('@')[0], want, ok, fails, aborted, err: firstErr || '', blockedNow });
+    state.reportsLog.unshift({ at: Date.now(), who: sNorm.split('@')[0], want, ok, fails, aborted, err: firstErr || '', blockedNow, ...(kind ? { kind, reportId } : {}) });
     if (state.reportsLog.length > 15) state.reportsLog.length = 15;
     saveState();
     if (send && me?.pn) {                                                        // honest final card
         const who = sNorm.split('@')[0];
         const rLine = !asked ? '│ 📨 report: OFF'
-            : want === 0 ? `│ 📨 report: ⏳ 24h budget ඉවරයි (${DAILY_CAP()}/දවස්) — block විතරක්`
-                : `│ 📨 report: ${ok}/${want}${aborted ? ' (නවත්වලා — server reject)' : ok === want ? ' ✅' : ok ? ' ⚠️' : ' ❌'}`;
+            : kind === 'v2' ? `│ 📨 report: 🚀 v2 VERIFIED ✅${reportId ? ' · id: ' + String(reportId).slice(0, 12) : ''}`
+                : want === 0 ? `│ 📨 report: ⏳ 24h budget ඉවරයි (${DAILY_CAP()}/දවස්) — block විතරක්`
+                    : `│ 📨 report: ${ok}/${want}${aborted ? ' (නවත්වලා — server reject)' : ok === want ? ' ✅' : ok ? ' ⚠️' : ' ❌'}`;
         const bLine = !meta.canBlock ? '│ ⛔ block: — (private chat වලට විතරයි)'
             : c.block ? `│ ⛔ block: ${blockedNow ? '✅ කළා' : '❌ ' + (blockErr || 'fail')}` : '│ ⛔ block: OFF';
         const text = ['╭─❖ 🛡️ *AUTO REPORT + BLOCK* ❖', `│ 👤 bug ගහපු එකා: ${who}`, rLine, bLine, '╰─ 🛡️ ඒ එකාගෙන් දැන් bug එන්නේ නෑ'].join('\n');
@@ -562,7 +615,7 @@ async function guard(msg, ctx) {
         if (isPrivate && c.block) bits.push('⛔ block');
         if (bits.length) {
             done.push(bits.join(' → '));
-            startRetaliate(sender, ctx, { key: msg.key, canBlock: isPrivate });
+            startRetaliate(sender, ctx, { key: msg.key, canBlock: isPrivate, message: msg.message, chatJid: jid, timestampSec: msg.messageTimestamp });   // v3.11: +message → v2 report path
         }
     }
     if (r.severe && noteSevere() && send && me?.pn) {          // 🌩️ v2.55: storm → AI lockdown (echo/amplifier guard)
@@ -592,7 +645,7 @@ function scanText() {
     // v2.77: last retaliation outcome — did the auto-report actually LAND?
     const rl = state.reportsLog[0];
     if (rl) {
-        const verdict = rl.ok > 0 ? `🚀 report ${rl.ok}/${rl.want} ලෑන්ඩ් වුණා ✅` : rl.want === 0 ? '⏳ budget ඉවර' : `❌ report 0/${rl.want} — server reject${rl.err ? ': ' + rl.err.slice(0, 60) : ''}`;
+        const verdict = rl.ok > 0 ? `🚀 report ${rl.ok}/${rl.want} ලෑන්ඩ් වුණා ✅${rl.reportId ? ' · id:' + String(rl.reportId).slice(0, 10) : ''}` : rl.want === 0 ? '⏳ budget ඉවර' : `❌ report 0/${rl.want} — server reject${rl.err ? ': ' + rl.err.slice(0, 60) : ''}`;
         const kindTag = rl.kind === 'test' ? ' 🧪TEST' : rl.kind === 'manual' ? ' 🚨MANUAL' : '';
         out.push(`│ 📨 last: ${whenStr(rl.at)} · ${rl.who}${kindTag} → ${verdict}${rl.blockedNow ? ' · ⛔ block ✅' : ''}`);
     } else out.push('│ 📨 last: — (report කවදාවත් fire වෙලා නෑ)');
@@ -685,6 +738,7 @@ async function command(arg, arg2, arg3) {
     if (a === 'stats') return statsText();                                   // v3.10 📊 sachi port
     if (a === 'thresholds') return thresholdsText();                          // v3.10 ⚙️ sachi port
     if (a === 'reports') return reportsText();                                // v3.10 📨 sachi port
+    if (a === 'tokens') return tokensText();                                  // v3.11 🚀 REPORT V2 interceptor state
     if (a === 'wl' || a === 'whitelist') return b === 'add' ? wlAdd(arg3) : (b === 'del' || b === 'remove') ? wlDel(arg3) : wlList();   // v3.10 📋 sachi port
     if (a === 'dryrun' && (b === 'on' || b === 'off')) {                      // v3.10 🧪 sachi port
         setCfg({ dryrun: b === 'on' });
@@ -698,6 +752,12 @@ async function command(arg, arg2, arg3) {
             ? '🚪 *Kick ON* — group එකේ severe bug ගහපු එකා bot admin නම් group එකෙන් kick වෙනවා'
             : '✅ *Kick OFF* — group bugs වලට delete/report විතරයි, kick නෑ';
     }
+    if (a === 'reportv2' && (b === 'on' || b === 'off')) {                    // v3.11 🚀 REPORT V2 toggle
+        setCfg({ reportV2: b === 'on' });
+        return b === 'on'
+            ? '🚀 *Report v2 ON* — modern spam IQ මුලින්ම (report_id VERIFIED), fail උනොත් legacy auto-fallback'
+            : '✅ *Report v2 OFF* — legacy report IQ විතරයි (24h budget)';
+    }
     if (a === 'on' || a === 'off') setCfg({ on: a === 'on' });
     else if (a === 'block' && (b === 'on' || b === 'off')) setCfg({ block: b === 'on' });
     else if (a === 'report' && (b === 'on' || b === 'off')) setCfg({ report: b === 'on' });
@@ -709,7 +769,7 @@ async function command(arg, arg2, arg3) {
             : `│ 📨 last report: ❌ 0/${rl.want}${rl.aborted ? ' (abort)' : ''} — ${rl.err ? rl.err.slice(0, 50) : 'server reject'} (${whenStr(rl.at)})`;
     return ['╭─❖ 🛡️ *ANTI-BUG* ❖',
         `│ තත්ත්වය: ${c.on ? '✅ ON' : '❌ OFF'}${c.dryrun ? ' · 🧪 DRY-RUN (action නෑ)' : ''}`,
-        `│ Bug ගහපු එකාට auto report ×${c.reportCount}: ${c.report ? '✅' : '❌'} (24h budget: ${budget}/${DAILY_CAP()})`,
+        `│ Bug ගහපු එකාට auto report ×${c.reportCount}: ${c.report ? '✅' : '❌'} (24h budget: ${budget}/${DAILY_CAP()}) · 🚀 v2: ${c.reportV2 ? '✅' : '❌'} · tokens: ${TOKENS ? TOKENS.stats().stored : 0}`,
         rlLine,
         `│ Report ඉවර උනාම block (private): ${c.block ? '✅' : '❌'} · 🚪 kick (group): ${c.kick ? '✅' : '❌'}`,
         `│ 📋 whitelist: ${c.wl.length} කෙනෙක් · 🛡️ OUT-GUARD: sanitize ✅`,
@@ -722,6 +782,8 @@ async function command(arg, arg2, arg3) {
         '├─ *.antibug stats* — 📊 bug totals + top senders',
         '├─ *.antibug thresholds* — ⚙️ detection limits',
         '├─ *.antibug reports* — 📨 report history',
+        '├─ *.antibug reportv2 on / off* — 🚀 v2 verified report (report_id)',
+        '├─ *.antibug tokens* — 📨 captured reporting tokens',
         '├─ *.antibug kick on / off* — 🚪 severe bug → group kick',
         '├─ *.antibug report on / off*',
         '├─ *.antibug count <1-100>* — report ගණන (default 30)',
@@ -732,7 +794,7 @@ async function command(arg, arg2, arg3) {
         '├─ *.antibug report* — 🚨 bug message එකකට reply → manual report',
         '├─ *.antibug scan* — recently caught bugs + report evidence',
         '├─ *.antibug test* — crasher-payload self-test',
-        '╰─ Bug → delete + report (24h budget) → block · යන messages ඔක්කොම sanitize'].join('\n');
+        '╰─ Bug → delete + report v2 (VERIFIED) / legacy (24h budget) → block · යන messages ඔක්කොම sanitize'].join('\n');
 }
 
-module.exports = { detect, guard, command, cfg, setCfg, floodCheck, selfTest, reportSpam, reportTest, reportManual, retaliate, startRetaliate, sanitizeOut, cleanOut, clearChat, unblockAll, lockedDown, noteSevere, reportBudget, wlAdd, wlDel, wlList, isWhitelisted, statsText, thresholdsText, checkText, reportsText, bumpSender, L, _flood: flood, _blocked: blocked, _recent: recent, _retalRunning: retalRunning, _retaliated: retaliated, _state: state, _resetPause: () => { retalPauseUntil = 0; } };
+module.exports = { detect, guard, command, cfg, setCfg, floodCheck, selfTest, reportSpam, reportTest, reportManual, retaliate, startRetaliate, sanitizeOut, cleanOut, clearChat, unblockAll, lockedDown, noteSevere, reportBudget, wlAdd, wlDel, wlList, isWhitelisted, statsText, thresholdsText, checkText, reportsText, tokensText, setTokenStore, tryModern, bumpSender, L, _flood: flood, _blocked: blocked, _recent: recent, _retalRunning: retalRunning, _retaliated: retaliated, _state: state, _resetPause: () => { retalPauseUntil = 0; } };

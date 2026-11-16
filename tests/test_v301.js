@@ -36,8 +36,8 @@ const zetaSrc = fs.readFileSync(REPO + '/zetasub.js', 'utf8');
 (async () => {
     console.log('— v3.05.0 pins + markers —');
     ok('version 3.05.0 pkg+manifest · notes headline · manifest lists zetasub.js + cinesite.js + test_v302.js', () => {
-        assert.strictEqual(pkg.version, '3.10.0', 'pkg ' + pkg.version);
-        assert.strictEqual(manifest.version, '3.10.0', 'manifest ' + manifest.version);
+        assert.strictEqual(pkg.version, '3.11.0', 'pkg ' + pkg.version);
+        assert.strictEqual(manifest.version, '3.11.0', 'manifest ' + manifest.version);
         assert.ok(/^v\d+\.\d+\.\d+:/m.test(manifest.notes), 'notes headline (latest entry opens notes — history trimmed by design)');
         assert.ok(manifest.files.includes('zetasub.js'), 'manifest lists zetasub.js');
         assert.ok(manifest.files.includes('cinesite.js'), 'manifest lists cinesite.js');

@@ -80,10 +80,10 @@ const bot = require(path.join(REPO, 'bot.js'));
     const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
     const lock = JSON.parse(fs.readFileSync(path.join(REPO, 'package-lock.json'), 'utf8'));
     const man = JSON.parse(fs.readFileSync(path.join(REPO, 'manifest.json'), 'utf8'));
-    t('pkg 3.10.0', pkg.version === '3.10.0');
-    t('lock 3.10.0', lock.version === '3.10.0' && lock.packages[''].version === '3.10.0');
-    t('manifest 3.10.0', man.version === '3.10.0');
-    t('manifest.notes opens v3.10.0', typeof man.notes === 'string' && man.notes.startsWith('v3.10.0:'));
+    t('pkg 3.10.0', pkg.version === '3.11.0');
+    t('lock 3.10.0', lock.version === '3.11.0' && lock.packages[''].version === '3.11.0');
+    t('manifest 3.10.0', man.version === '3.11.0');
+    t('manifest.notes opens v3.10.0', typeof man.notes === 'string' && man.notes.startsWith('v3.11.0:'));
     t('manifest.files += tests/test_v3090.js', man.files.includes('tests/test_v3090.js'));
 
     console.log('── (9) rebrand holds ──');

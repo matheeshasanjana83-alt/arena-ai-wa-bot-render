@@ -114,10 +114,10 @@ console.log('── (2) fail-safe builders ──');
     t('HELP advertises the v3.08 premium UI', BOT.includes('🧊 v3.08 premium UI'));
 
     console.log('── (7) version pins ──');
-    t('pkg 3.08.1', pkg.version === '3.10.0');
-    t('lock 3.08.1', lock.version === '3.10.0');
-    t('manifest 3.08.1', man.version === '3.10.0');
-    t('manifest.notes opens v3.10.0', typeof man.notes === 'string' && man.notes.startsWith('v3.10.0:'));
+    t('pkg 3.08.1', pkg.version === '3.11.0');
+    t('lock 3.08.1', lock.version === '3.11.0');
+    t('manifest 3.08.1', man.version === '3.11.0');
+    t('manifest.notes opens v3.10.0', typeof man.notes === 'string' && man.notes.startsWith('v3.11.0:'));
     t('manifest.files += ui.js', man.files.includes('ui.js'));
     t('manifest.files += tests/test_v3080.js', man.files.includes('tests/test_v3080.js'));
 
