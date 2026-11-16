@@ -1,0 +1,50 @@
+name: deploy-v312
+on:
+  workflow_dispatch: {}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push v3.12.0 files to panel + verify + restart
+        env:
+          PANEL_KEY: ${{ secrets.PANEL_KEY }}
+        run: |
+          set -e
+          PANEL='https://legionofdeath.zone.id'
+          SRV='53d44fbc'
+          SHA='2af8b8b'
+          APP='https://8qpf3c2bqm.apps.bot-hosting.cloud/status'
+          ok=1
+          for F in bot.js media.js settings_menu.js manifest.json package.json; do
+            curl -sL "https://raw.githubusercontent.com/matheeshasanjana83-alt/arena-ai-wa-bot-render/$SHA/$F" -o "/tmp/$F"
+            SZ=$(wc -c < "/tmp/$F")
+            code=$(curl -s -o /tmp/resp -w '%{http_code}' -X POST "$PANEL/api/client/servers/$SRV/files/write?file=/$F" \
+              -H "Authorization: Bearer $PANEL_KEY" -H "Accept: application/json" \
+              -H "Content-Type: application/octet-stream" --data-binary "@/tmp/$F")
+            echo "$F -> HTTP $code ($SZ B)"
+            [ "$code" = "200" ] || [ "$code" = "204" ] || ok=0
+          done
+          echo "── verify round-trip"
+          for F in bot.js media.js settings_menu.js manifest.json package.json; do
+            code=$(curl -s -o /tmp/back -w '%{http_code}' "$PANEL/api/client/servers/$SRV/files/contents?file=/$F" \
+              -H "Authorization: Bearer $PANEL_KEY" -H "Accept: application/json")
+            if cmp -s "/tmp/$F" /tmp/back; then echo "✓ $F verified identical"; else echo "✗ $F MISMATCH (http $code, $(wc -c < /tmp/back)B)"; ok=0; fi
+          done
+          [ "$ok" = "1" ] || { echo "DEPLOY ABORTED — verification failed"; exit 1; }
+          echo "── restart"
+          curl -s -X POST "$PANEL/api/client/servers/$SRV/power" \
+            -H "Authorization: Bearer $PANEL_KEY" -H "Accept: application/json" \
+            -H "Content-Type: application/json" -d '{"signal": "restart"}' | head -c 300; echo
+          echo "── poll app status (40 × 10s)"
+          seen=0
+          for i in $(seq 1 40); do
+            sleep 10
+            U=$(curl -s --max-time 10 "$APP" || true)
+            echo "poll $i: $U"
+            UP=$(echo "$U" | grep -o '"uptime":[0-9]*' | grep -o '[0-9]*')
+            if [ -n "$UP" ] && [ "$UP" -lt 600 ]; then echo "✅ RESTART CONFIRMED — v3.12.0 deploying"; seen=1; break; fi
+          done
+          echo "── panel console tail"
+          curl -s "$PANEL/api/client/servers/$SRV/logs?tail=40" -H "Authorization: Bearer $PANEL_KEY" | head -c 4000 || true
+          echo
+          if [ "$seen" = "1" ]; then echo "DEPLOY-OK"; else echo "RESTART-NOT-SEEN (files verified + restart issued — check console tail)"; fi
