@@ -392,4 +392,18 @@ async function resolveRedirects(url, max = 6) {
     throw new Error('redirect ගොඩක් (loop)');
 }
 
-module.exports = { getBin, info, ytdl, makeSticker, addExif, ytError, isTermux, fetchToFile, resolveRedirects, cookiesFile, checkUpdate, latestViaRedirect, firstOk, _run: run };
+
+async function toPng(buf) {   // 🛠️ v3.12: webp → png best-effort (static only — animated webp decoders fail → null) — AI vision providers
+    const inp = path.join(TMP(), `tp-${process.pid}-${Date.now().toString(36)}.webp`);
+    const out = inp.slice(0, -5) + '.png';
+    fs.writeFileSync(inp, buf);
+    try {
+        await run(ff, ['-hide_banner', '-loglevel', 'error', '-y', '-i', inp, '-vf', 'scale=512:-1', '-frames:v', '1', out], 45e3);
+        const b = fs.readFileSync(out);
+        return b.length > 100 ? b : null;
+    } catch { return null; } finally {
+        try { fs.rmSync(inp, { force: true }); } catch { }
+        try { fs.rmSync(out, { force: true }); } catch { }
+    }
+}
+module.exports = { getBin, info, ytdl, makeSticker, addExif, ytError, isTermux, fetchToFile, resolveRedirects, cookiesFile, checkUpdate, latestViaRedirect, firstOk, toPng, _run: run };

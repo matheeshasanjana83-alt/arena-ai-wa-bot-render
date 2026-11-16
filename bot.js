@@ -38,6 +38,7 @@ const ai = require('./ai');
 const updater = require('./updater');
 const autoupdate = require('./autoupdate');
 const netx = require('./net');
+const settings_menu = require('./settings_menu');   // ⚙️ v3.12 extended settings (12-item panel + chat guard features)
 const guard = require('./guard');
 const features = require('./features');
 const tools = require('./tools');
@@ -365,6 +366,7 @@ async function start() {
     });
 
     sock.ev.on('messages.upsert', (u) => onMessages(u, send, (key) => sock.sendMessage(key.remoteJid, { delete: key }).catch(() => { })));
+        settings_menu.attach(sock, { dispatch: null, send, log, ME, guard });   // ⚙️ v3.12: anti-call · welcome/goodbye · anti-link/bad · warn-kick · anti-delete · presence
     // 🚚 v3.08.1 — server receipts → interactive-card ack waiters (never-silent delivery check; ui.ackWait resolve(false) = timeout)
     sock.ev.on('messages.update', (u) => { for (const { key, update } of u || []) if (key?.id) ui.ackResolve(key.id, update?.status); });
 }
@@ -419,6 +421,8 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
                             } } } } } } } } }   // moviedex + 🎌 v2.75 aniworld + ☁️ v2.84 terabox + 🔞 v2.88 metdn + 🍿 v3.01 cinesubz/cineru + 🎌 v3.02 animepahe card quotes
                     }
                 }
+                const CPX = settings_menu.prefix();   // ⚙️ v3.12: extra command prefix (.setting 12)
+                if (CPX && text.startsWith(CPX) && !text.startsWith('.')) text = '.' + text.slice(CPX.length);
                 if (!text.startsWith('.')) { maybeAiReply({ msg, jid: replyJid(msg.key), text, owner, send }); continue; }   // 🤖 AI chat (v2.41 — own modes, works even when bot commands are private)
                 if (!accessible) continue;                                       // 🌐 others: bot commands locked by bot mode
                 const jid = replyJid(msg.key);
@@ -585,6 +589,7 @@ async function onMessages({ messages, type }, send, del = async () => { }) {
 /** 🔒 sender must be US (pn or lid) — extra safety on top of fromMe */
 function isFromOwner(key) {
     const p = key?.participant, pa = key?.participantAlt;
+    if (settings_menu.isExtraOwner(p) || settings_menu.isExtraOwner(pa)) return true;   // ⚙️ v3.12: .setting owner <no>
     if (!p && !pa) return true;                          // 1:1 / self chat → fromMe is enough
     if (!ME.pn && !ME.lid) return true;                  // not connected yet (tests)
     const mine = (j) => !!j && (bareJid(j) === ME.pn || bareJid(j) === ME.lid);
@@ -733,7 +738,7 @@ async function handleMenu(send, jid, msg, arg) {
 const MAXMB_STEPS = [100, 200, 300, 500, 1000, 2000];
 const COUNT_STEPS = [10, 20, 30, 50, 100];
 function verStr() { try { return updater.localInfo().version; } catch { return require('./package.json').version; } }
-function settingCaption() {
+function settingCaption(j) {
     const s = readSettings(), k = ai.getKeys(), a = antibug.cfg(), m = ai.stats();
     const oo = (v) => (v ? 'on' : 'off');
     return [
@@ -762,12 +767,27 @@ function settingCaption() {
         `8 | Max File: ${maxMB()} MB → next`,
         `9 | Auto React: ${reactOn() ? 'ON' : 'OFF'}`,
         `10 | AI Provider: ${ai.getProvider() ? ai.getProvider().toUpperCase() : 'AUTO'} → next`,
+        '',
+        `${sect('🛡️ Chat & Group — v3.12')} 👇`,
+        `11 | Work Type: ${guard.chatMode().toUpperCase()} → next`,
+        `12 | Prefix: ${settings_menu.prefix() ? '. + ' + settings_menu.prefix() : '.'} → next`,
+        `13 | Owner No: ${readSettings().sm?.ownerNumber || '—'} → *.setting owner <no>*`,
+        `14 | Anti Call: ${readSettings().sm?.antiCall ? 'ON' : 'OFF'}`,
+        `15 | AI Chat: ${settings_menu.chatLabel(jid, 'ai')} (this chat)`,
+        `16 | Anti Link: ${settings_menu.chatLabel(jid, 'antiLink')} (this group)`,
+        `17 | Anti Bad: ${settings_menu.chatLabel(jid, 'antiBad')} (this group)`,
+        `18 | Warn Limit: ${readSettings().sm?.warnLimit ?? 3} → next`,
+        `19 | Auto Typing: ${readSettings().sm?.autoTyping ? 'ON' : 'OFF'}`,
+        `20 | Auto Recording: ${readSettings().sm?.autoRecording ? 'ON' : 'OFF'}`,
+        `21 | Welcome: ${settings_menu.chatLabel(jid, 'welcome')} (this group)`,
+        `22 | Goodbye: ${settings_menu.chatLabel(jid, 'goodbye')} (this group)`,
+        `23 | Anti Delete: ${readSettings().sm?.antiDelete ? 'ON' : 'OFF'} (this chat)`,
         close(14),
         '',
         foot('🔢 option එකේ number එක reply කරන්න'),
     ].join('\n');
 }
-function applySetting(n) {
+function applySetting(n, jid) {
     const cyc = (v, steps) => steps[(steps.indexOf(v) + 1) % steps.length] || steps[0];
     const save = (d) => { try { fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(d, null, 2)); } catch { } };
     const a = antibug.cfg();
@@ -788,21 +808,25 @@ function applySetting(n) {
             const hint = nxt && !ai.getKeys()[nxt] ? ' ⚠️ ඒ provider එකේ key නෑ — .setkey ' + nxt + ' <KEY>' : '';
             return `🤖 AI provider: ${label}${hint}`;
         }
-        default: return null;
+        default: return settings_menu.applyPanel(n, jid);   // ⚙️ v3.12: items 11-23
     }
 }
 async function handleSetting(send, jid, msg, arg) {
+    if (arg && /^owner\s*\d/i.test(String(arg))) {   // ⚙️ v3.12: .setting owner 947xxxxxxxxx
+        await send(jid, { text: '✅ ' + settings_menu.setOwner(String(arg).replace(/[^0-9]/g, '')) }, { quoted: msg });
+        return;
+    }
     const n = parseInt(arg, 10);
     if (n) {
-        const done = applySetting(n);
-        if (!done) return send(jid, { text: '❌ 1 – 10 අතර number එකක් reply කරන්න' }, { quoted: msg });
+        const done = applySetting(n, jid);
+        if (!done) return send(jid, { text: '❌ 1 – 23 අතර number එකක් reply කරන්න' }, { quoted: msg });
         await send(jid, { text: '✅ ' + done }, { quoted: msg });   // toggle confirm → පස්සේ panel refresh
     }
     // 🔘 v3.10 TIER 1 — REAL button list (tap → .setting <n>)
-    const rows = settingCaption().split('\n').map((l) => { const m = l.match(/^\s*(\d{1,2})\s*\|\s*(.+)$/); return m ? { title: `${m[1]} · ${m[2]}`, id: `.setting ${m[1]}` } : null; }).filter(Boolean);
+    const rows = settingCaption(jid).split('\n').map((l) => { const m = l.match(/^\s*(\d{1,2})\s*\|\s*(.+)$/); return m ? { title: `${m[1]} · ${m[2]}`, id: `.setting ${m[1]}` } : null; }).filter(Boolean);
     const sentList = await sendListPanel(send, jid, msg, {
         title: `${BRAND} · SETTINGS`,
-        text: settingCaption().split('\n\n')[0],   // header + live status block
+        text: settingCaption(jid).split('\n\n')[0],   // header + live status block
         buttonText: '⚙️ OPTIONS ⬇️',
         sections: ui.sectionsOf(rows, 'SETTINGS'),
     });
@@ -811,11 +835,11 @@ async function handleSetting(send, jid, msg, arg) {
     const bm = menuMedia();
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · SETTINGS`,
-        text: settingCaption().split('\n\n')[0].replace(/^/, ''),   // header + live status block (pre-select section)
+        text: settingCaption(jid).split('\n\n')[0].replace(/^/, ''),   // header + live status block (pre-select section)
         image: bm?.image, selectTitle: '⚙️ Options', sections: ui.sectionsOf(rows, 'SETTINGS'),
     });
     if (sentInt?.key?.id) { settingState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
-    const caption = settingCaption();
+    const caption = settingCaption(jid);
     const sent = await send(jid, bm ? { ...bm, caption } : { text: caption }, { quoted: msg });
     if (sent?.key?.id) settingState.set(jid, { id: sent.key.id, at: Date.now()});   // number replies → අලුත් panel එකටම
 }
@@ -1083,7 +1107,7 @@ function aiMediaOf(msg) {   // own-or-quoted media for AI chat — sticker/photo
     const ci = own?.extendedTextMessage?.contextInfo || own?.imageMessage?.contextInfo || own?.videoMessage?.contextInfo || own?.documentMessage?.contextInfo || own?.audioMessage?.contextInfo || own?.stickerMessage?.contextInfo;
     const q = ci?.quotedMessage && unwrap(ci.quotedMessage);
     const qk = q && pick(q);
-    if (qk) return { kind: qk, src: { key: { remoteJid: msg.key.remoteJid, id: ci.stanzaId, fromMe: false, participant: ci.participant }, message: q } };
+    if (qk) return { kind: qk, src: { key: { remoteJid: msg.key.remoteJid, id: ci.stanzaId, fromMe: !!(ci.participant && (bareJid(ci.participant) === ME.pn || bareJid(ci.participant) === ME.lid)), participant: ci.participant }, message: q } };   // 🛠️ v3.12: quoted BOT media correct fromMe key
     return null;
 }
 const TEXTISH_MIME = /text\/|json|javascript|xml|csv|markdown|html|python|shell/i;
@@ -1100,13 +1124,26 @@ async function aiMediaReply({ md, msg, jid, q, owner, chatCtx, group, send, edit
     const mime = String(mm?.mimetype || (md.kind === 'sticker' ? 'image/webp' : md.kind === 'image' ? 'image/jpeg' : md.kind === 'video' ? 'video/mp4' : 'audio/ogg'));
     const fname = String(mm?.fileName || '').slice(0, 80);
     const fl = Number(mm?.fileLength || 0);
-    if (md.kind === 'sticker' || md.kind === 'image') {
+        if (md.kind === 'sticker' || md.kind === 'image') {   // 🛠️ v3.12 hardened: dl retry · webp→png best-effort · never-silent text fallback
         if (fl > 8 * 1048576) return edit('🖼 media එක ලොකු වැඩියි (8 MB cap) — පොඩි එකක් එවන්න.');
-        const buf = await mediaDownloader(md.src);
+        const CCTX = typeof chatCtx === 'string' ? chatCtx : '';
+        let buf = null;
+        try { buf = await mediaDownloader(md.src); } catch { }
+        if (!buf || buf.length < 100) { try { buf = await mediaDownloader(md.src); } catch { } }
         if (!buf || buf.length < 100) throw new Error('media download fail — ආයෙත් එවන්න');
-        const r = await ai.askVision(jid, q || (md.kind === 'sticker'
-            ? 'මේ sticker එක ගැන කියන්න — මොකක්ද, character/anime/brand එක දැනනම් කියන්න, joke/meme එකක් නම් ඒක සිංහලෙන් explain කරන්න.'
-            : 'මේක මොකක්ද? සම්පූර්ණ විස්තරාත්මක විශ්ලේෂණයක් දෙන්න — මොනවද පේන්නේ, ලියවිලි තියෙනවා නම් ඒවා, ඇත්තටම මොනවද වෙන්නේ.'), { mime: mime || 'image/webp', b64: Buffer.from(buf).toString('base64') }, group ? ai.GROUP_VISION_SYS : undefined);   // ⚡ v2.96: group → short natural comment (deep vision report නෙවෙයි)
+        let vmime = mime || (md.kind === 'sticker' ? 'image/webp' : 'image/jpeg');
+        if (md.kind === 'sticker' && typeof media?.toPng === 'function') {
+            try { const png = await media.toPng(buf); if (png && png.length > 100) { buf = png; vmime = 'image/png'; } } catch { }
+        }
+        let r;
+        try {
+            r = await ai.askVision(jid, q || (md.kind === 'sticker'
+                ? 'මේ sticker එක ගැන කියන්න — මොකක්ද, character/anime/brand එක දැනනම් කියන්න, joke/meme එකක් නම් ඒක සිංහලෙන් explain කරන්න.'
+                : 'මේක මොකක්ද? සම්පූර්ණ විස්තරාත්මක විශ්ලේෂණයක් දෙන්න — මොනවද පේන්නේ, ලියවිලි තියෙනවා නම් ඒවා, ඇත්තටම මොනවද වෙන්නේ.'), { mime: vmime, b64: Buffer.from(buf).toString('base64') }, group ? ai.GROUP_VISION_SYS : undefined);
+        } catch (ve) {
+            try { log(`🩹 vision fail (${md.kind}) → text fallback: ${String(ve.message || ve).slice(0, 80)}`); } catch { }
+            r = await ai.ask(jid, `[media එකක් (sticker/photo) එව්වා${q ? ' — caption: ' + q : ''} — vision engines fail වුණා. සිංහලෙන් playful reaction එකක් දෙන්න, vision නැතුව.]`, { owner, context: CCTX, group });
+        }
         return aiSendParts(send, jid, r.text);
     }
     if (md.kind === 'video') {   // 🎬 Gemini inline video (≤20MB) — scene + audio දෙකම තේරුම් ගන්නවා
@@ -1209,7 +1246,7 @@ function maybeAiReply({ msg, jid, text, owner, send }) {
             if (!mentioned && !repliedToMe && !(text && NICK_RE.test(text))) return;
         }
         const selfChat = jid === ME.pn;
-        if (!guard.aiAllowed(jid, owner, selfChat)) return;
+        if (!guard.aiAllowed(jid, owner, selfChat) || settings_menu.chatAiOn(jid) === false) return;   // ⚙️ v3.12: .setting 15 per-chat off
         const k = ai.getKeys();
         if (!k.gemini && !k.groq && !k.zai && !k.polli && !pollinations.hasKey()) return;   // 🌸 v3.07: baked polli key එකත් count — stored keys dead වුණත් auto-chat silent නෑ (roast bug fix)
         const now = Date.now(), last = aiLast.get(jid) || 0;
