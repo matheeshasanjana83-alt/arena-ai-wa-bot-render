@@ -651,51 +651,32 @@ async function handleReact(send, jid, msg, arg) {
 }
 
 const CATS = [
-    ['📥', 'Download', `*📥 DOWNLOAD*\n\n✦ *.download <link>* — file එක එවනවා (*.dl*)\n✦ *.mediafire <link>* — 🔥 MediaFire\n✦ *.mega <link>* — 🟢 MEGA\n✦ *.gdrive <link>* — 🔵 Google Drive\n✦ *.terabox <link>* — ☁️ TeraBox → file (cookie: *.tbcookie*)\n✦ *.metdn <නම/link>* — 🔞 mat6tube search → quality menu → mp4 (18+)\n✦ *.cinesubz <නම>* — 🍿 CineSubz → movie quality / 📺 series episodes → file\n✦ *.cineru <නම>* — 🍿 Cineru.lk සිංහල sub (වෙනම command — moviedex mix නෑ)\n✦ *.animepahe <anime>* — 🎌 AnimePahe → episodes → quality → file (*.aphe*)\n✦ *.video <link/නම>* — 🎬 YouTube quality menu (*.yt*)\n✦ *.song <link/නම>* — 🎧 YouTube audio menu (*.play*)\n✦ *.aniworld <anime>* — 🎌 AniWorld anime → season → episode → stream link (*.aw*)\n✦ *.apk <app නම / package / url>* — 📦 APK downloader\n✦ *.dl link1 link2* — links 5 දක්වා\n✦ *.mirror <link>* — 🔗 direct share link (1GB+ movies OK — disk නොගෙන stream)\n✦ *.gitclone user/repo* — repo → zip\n\n> 📏 max {MAX} / file · *.maxmb* වෙනස් කරන්න · ⚡ multi-connection fast download`],
-    ['🎬', 'YouTube', `*🎬 YOUTUBE*\n\n✦ *.yts <නම>* — search\n✦ *.song <නම / link>* — 🎧 format menu — M4A / MP3 320 / 128 (*.play*)\n✦ *.video <නම / link>* — 🎬 quality menu — sizes එක්ක (*.yt*)\n✦ *.video <link> 1080* — instant pick (menu නැතුව)\n\n> menu card එකට අංකය *reply* කරන්න · 2160p → 144p`],
-    ['🍿', 'MovieDex', `*🍿 MOVIEDEX* — movies + 📺 series\n\n✦ *.moviedex <නම>* — search (*.mdx*)\n✦ අංකය reply — card → options\n✦ *.moviedex <n> <q#>* — 🍿 movie file\n✦ series: season 🧳 pack files · episode 🎬 files\n✦ *.moviedex <n> <q#> link* — 🔗 share link\n\n> DASH 1080p/720p/480p · ffmpeg mux · *.maxmb* limit`],
-    ['📱', 'Social', `*📱 SOCIAL*\n\n✦ *.tiktok <link>* — watermark නෑ (*.tt*)\n✦ *.fb <link>* — Facebook (*.facebook*)\n✦ *.ig <link>* — Instagram\n✦ *.x <link>* — X / Twitter`],
-    ['🔍', 'Search', `*🔍 SEARCH*\n\n✦ *.wiki <මාතෘකාව>* — Wikipedia\n✦ *.wiki si <මාතෘකාව>* — සිංහල wiki\n✦ *.yts <නම>* — YouTube search`],
-    ['🖼️', 'Sticker', `*🖼️ STICKER*\n\n✦ *.s* — photo/video reply → sticker\n✦ *.take Pack | Author* — නම වෙනස් කරන්න\n\n> video sticker — තත්පර 6 දක්වා`],
-    ['🛠️', 'Tools', `*🛠️ TOOLS*\n\n✦ *.tr <භාෂාව> <text>* — translate\n✦ *.remind <time> <note>* — ⏰ reminders\n✦ *.stt* — 🎙️ voice note → text\n✦ *.tts <text>* — voice (සිංහල OK)\n✦ *.weather <නගරය>* — කාලගුණය · දින 3\n✦ *.lyrics <සින්දුව>* — lyrics\n✦ *.define <word>* — 📖 English dictionary\n✦ *.imagine <විස්තරය>* — AI image\n✦ *.toimg* — sticker → photo\n✦ *.getdp <number>* — 🖼️ profile photo\n✦ *.vv* — 🕵️ view-once reveal\n✦ *.tourl* — media → 🔗 link\n✦ *.uploadtra* — file → 📤 transfer.archivete.am link (delete link එකත් · fail උනොත් gofile auto-fallback)
-✦ *.uploadgo* — file → 📤 gofile.io link (~10d · browser download)
-✦ *.uploadtm* — file → ⏳ tmpfiles.org link (60 min · bot download වලටත් වැඩ)\n✦ *.ss <site>* · *.qr* · *.short* · *.calc*\n✦ *.github <user>* · *.del* · *.setpp*\n✦ *.hentai* · *.hneko* · *.hmidriff* · *.pgif* — 🔞 NSFW (18+ only)\n✦ *.hentaiv <name>* — 🔞 video + quality menu → file එක එවනවා (18+)\n✦ *.ep <query>* — 🔞 eporner video + quality menu → file (18+)\n✦ *.javdn <code>* — 🔞 javbus search → details → 🧲 magnet links (18+)\n✦ *.metdn <නම/link>* — 🔞 mat6tube search → quality menu → mp4 (18+)
-✦ *.hentaimng <name>* — 🔞 hitomi manga → cover + pages images (18+)`],
-    ['🎉', 'Fun', `*🎉 FUN*\n\n✦ *.joke* · *.fact* · *.quote*\n✦ *.8ball <ප්‍රශ්නය>* — 🎱`],
-    ['👥', 'Group', `*👥 GROUP* — group එකේ ඔයා ගහන්න\n\n✦ *.groupinfo* · *.grouplink* · *.jid*\n✦ *.tagall [msg]* — විනාඩි 10 කට 1\n✦ *.kick @user* · *.promote* · *.demote*\n✦ *.mute* · *.unmute* · *.tagadmins* · *.resetlink*\n\n> @mention නැත්නම් message එකකට reply කරන්න`],
-    ['🤖', 'AI', `*🤖 AI*\n\n✦ *.ai <ප්‍රශ්නය>* — සිංහල OK\n✦ message එකකට reply + *.ai* — ඒක ගැනම\n✦ *.anime <ප්‍රශ්නය>* — 🎌 verified anime/manga knowledge (Black Clover 🥇)\n✦ *.ai reset* — අලුත් කතාවක්
-✦ *.ai memory* — මතකය status · save state
-✦ photo/sticker/video/voice/PDF එකකට reply + *.ai* — 👁 බලලා කියනවා (group එකේ @mention එක්ක media එකක් = auto reply)
-✦ *.remind 10m <note>* — ⏰ මතක් කරන්න
-✦ *.ai tools* — smart connector (search/weather/YT)
-✦ *.ai roast* — 🔥 බැනුමට ආපහු බැනීම (on/off)
-✦ 🏷️ v3.07 name calls — group එකේ *Dk · DK · ඩිකෙ · kaviz · කවිස් · batista · බටිස්ටා* කියලා කැඳවුවත් AI reply කරනවා (@mention අවශ්‍ය නෑ)
-✦ 🎬 v3.07 auto-fetch — "මට jailer movie එක ඔනි" වගේ natural request එකක් ආවාම AI ම *.moviedex* run කරනවා · file එක ආවම "ලබා දුන්නා" confirm එකකුත් එනවා · fast/talk modes auto (full IQ)
-✦ 🧊 v3.08 premium UI — *.menu* · *.setting* · *.mode* + ＭＯＶＩＥＤＥＸ cards native TAP buttons වලින් (WhatsApp latest API) — number ගහන්නෙ නැතුව tap කරන්න; classic cards auto-fallback
-✦ AI provider තෝරන්න — *.aiprovider gemini/groq/zai/auto* · *.setting* → 10\n✦ AI chat auto-reply — *.mode* → 5/6 on·off · 11-16 modes
-✦ Smart multi-engine fallback auto (engine එකක් down වුණත් .ai වැඩ)
-✦ *.setkey gemini/groq/zai/together/polli <KEY>* · *.keys* · *.stt* — voice→text`],
-    ['🔧', 'Network', `*🔧 NETWORK*\n\n✦ *.net <link>* — fail වුණොත් හේතුව\n✦ *.setproxy <url|off>* — block sites වලට\n✦ *.setconsumet <url|off>* — animepahe API mirror 🎌\n✦ *.proxies* — free pool status · *.proxies check*\n✦ *.setcookies* — YouTube bot-check fix\n✦ *.tbcookie <ndus>* — ☁️ TeraBox cookie (LIVE verify)`],
-    ['⚙️', 'Settings', `*⚙️ SETTINGS*\n\n✦ *.setlogo* / *.dellogo* — menu logo\n✦ *.addmenu* — 🖼 photo deck add (හැම .menu එකකම ඊළඟ photo එක rotate වෙනවා) · *.deck* · *.delmenu <n>*\n✦ *.react on|off* — auto react\n✦ *.maxmb <MB>* — download limit\n✦ *.setting* — ⚙️ settings panel (අංක reply → toggle)
-✦ *.mode* — 🛡 mode panel (public / private / inbox / groups + AI chat modes)\n✦ *.autoupdate on|off* — GitHub එකෙන් auto update (default on)\n✦ *.update* · *.restart* · *.version*`],
-    ['🛡️', 'Security', `*🛡️ SECURITY*\n\n✦ commands — ඔයාට විතරයි (owner-only)\n✦ anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug dryrun on|off* — 🧪 test mode (detect විතරයි, action නෑ)\n✦ *.antibug wl add|del|list <num>* — 📋 whitelist (කවදාවත් flag නොකරන අය)\n✦ *.antibug check* — 🧪 bug message එකකට reply → live scan verdict\n✦ *.antibug stats* — 📊 bug totals + top senders · *.antibug thresholds* — limits\n✦ *.antibug reports* — 📨 report history · *.antibug kick on|off* — 🚪 group kick\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ 🚀 *.antibug reportv2 on|off* — v2 VERIFIED report (report_id) · *.antibug tokens*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard\n✦ 🔘 *.menubtn on|off* — button menu toggle (WhatsApp native list)`],
-    ['📊', 'Status', null],
+    ['📥', 'Download', `*DOWNLOAD*\n\n✦ *.download <link>* — file එක එවනවා (*.dl*)\n✦ *.mediafire <link>* — 🔥 MediaFire\n✦ *.mega <link>* — 🟢 MEGA\n✦ *.gdrive <link>* — 🔵 Google Drive\n✦ *.terabox <link>* — ☁️ TeraBox → file (cookie: *.tbcookie*)\n✦ *.video <link/නම>* — 🎬 YouTube quality menu (*.yt*) · *.video <link> 1080* — instant pick\n✦ *.song <link/නම>* — 🎧 YouTube audio menu (*.play*)\n✦ *.aniworld <anime>* — 🎌 AniWorld → stream link (*.aw*)\n✦ *.apk <app නම / url>* — 📦 APK downloader\n✦ *.mirror <link>* — 🔗 direct share link (1GB+ movies OK — disk නොගෙන stream)\n✦ *.gitclone user/repo* — repo → zip\n✦ *.tiktok <link>* — watermark නෑ (*.tt*)\n✦ *.fb <link>* — Facebook (*.facebook*)\n✦ *.ig <link>* — Instagram\n✦ *.x <link>* — X / Twitter\n✦ *.metdn <නම/link>* — 🔞 mat6tube → mp4 (18+)\n✦ *.dl link1 link2* — links 5 දක්වා\n\n> 📏 max {MAX} / file · *.maxmb* වෙනස් කරන්න · ⚡ multi-connection fast download`],
+    ['🎬📽️', 'Movie', `*MOVIE*\n\n✦ *.cinesubz <නම>* — 🍿 CineSubz → movie quality / 📺 series episodes → file\n✦ *.animepahe <anime>* — 🎌 AnimePahe → episodes → quality → file (*.aphe*)\n✦ *.cineru <නම>* — 🍿 Cineru.lk සිංහල sub\n✦ *.moviedex <නම>* — search (*.mdx*) · අංකය reply — card → options\n✦ *.moviedex <n> <q#>* — 🍿 movie file\n✦ series: season 🧳 pack files · episode 🎬 files\n✦ *.moviedex <n> <q#> link* — 🔗 share link\n\n> DASH 1080p/720p/480p · ffmpeg mux · *.maxmb* limit`],
+    ['🔞', '18+ Hub', `*18+ HUB*\n\n✦ *.hentai* · *.hneko* · *.hmidriff* · *.pgif* — 🔞 NSFW (18+ only)\n✦ *.hentaiv <name>* — 🔞 video + quality menu → file එක එවනවා\n✦ *.ep <query>* — 🔞 eporner video + quality menu → file\n✦ *.javdn <code>* — 🔞 javbus search → 🧲 magnet links\n✦ *.metdn <නම/link>* — 🔞 mat6tube search → quality menu → mp4\n✦ *.hentaimng <name>* — 🔞 hitomi manga → cover + pages\n\n> 🔞 18+ only`],
+    ['🔍', 'Search', `*SEARCH*\n\n✦ *.yts <නම>* — YouTube search\n✦ *.wiki <මාතෘකාව>* — Wikipedia\n✦ *.wiki si <මාතෘකාව>* — සිංහල wiki`],
+    ['🛠️', 'Function', `*FUNCTION*\n\n✦ *.tr <භාෂාව> <text>* — translate\n✦ *.remind <time> <note>* — ⏰ reminders\n✦ *.stt* — 🎙️ voice → text · *.tts <text>* — voice (සිංහල OK)\n✦ *.weather <නගරය>* — කාලගුණය · දින 3\n✦ *.lyrics <සින්දුව>* — lyrics\n✦ *.define <word>* — 📖 English dictionary\n✦ *.imagine <විස්තරය>* — AI image\n✦ *.toimg* — sticker → photo\n✦ *.getdp <number>* — 🖼️ profile photo\n✦ *.vv* — 🕵️ view-once reveal\n✦ *.tourl* — media → 🔗 link\n✦ *.uploadtra* — file → 📤 transfer.archivete.am (fail → gofile auto-fallback)\n✦ *.uploadgo* — file → 📤 gofile.io (~10d)\n✦ *.uploadtm* — file → ⏳ tmpfiles.org (60 min)\n✦ *.ss <site>* · *.qr* · *.short* · *.calc*\n✦ *.github <user>* · *.del* · *.setpp*\n✦ *.s* — photo/video reply → sticker (තත්පර 6 දක්වා) · *.take Pack | Author* — නම වෙනස් කරන්න\n✦ *.joke* · *.fact* · *.quote* · *.8ball <ප්‍රශ්නය>* — 🎱\n✦ *.net <link>* — fail වුණොත් හේතුව\n✦ *.setproxy <url|off>* — block sites වලට · *.setconsumet <url|off>* — animepahe mirror 🎌 · *.proxies* — pool status\n✦ *.setcookies* — YouTube bot-check fix · *.tbcookie <ndus>* — ☁️ TeraBox cookie (LIVE verify)`],
+    ['👥', 'Group', `*GROUP* — group එකේ ඔයා ගහන්න\n\n✦ *.groupinfo* · *.grouplink* · *.jid*\n✦ *.tagall [msg]* — විනාඩි 10 කට 1\n✦ *.kick @user* · *.promote* · *.demote*\n✦ *.mute* · *.unmute* · *.tagadmins* · *.resetlink*\n\n> @mention නැත්නම් message එකකට reply කරන්න`],
+    ['🤖', 'AI', `*AI*\n\n✦ *.ai <ප්‍රශ්නය>* — සිංහල OK · message එකකට reply + *.ai* — ඒක ගැනම\n✦ *.anime <ප්‍රශ්නය>* — 🎌 verified anime/manga knowledge (Black Clover 🥇)\n✦ photo/sticker/video/voice/PDF එකකට reply + *.ai* — 👁 බලලා කියනවා (group එකේ @mention එක්ක media = auto reply)\n✦ *.ai reset* — අලුත් කතාවක් · *.ai memory* — මතකය status\n✦ *.ai tools* — smart connector (search/weather/YT) · *.ai roast* — 🔥 ආපහු බැනීම (on/off)\n✦ *.aiprovider gemini/groq/zai/auto* — engine තෝරන්න · *.setkey <engine> <KEY>* · *.keys*\n✦ *.mode* — 🛡 AI chat auto-reply on/off (5/6)\n✦ 🏷️ name calls — group එකේ *Dk · kaviz · batista · බටිස්ටා* කියලා කැඳවුවත් AI reply (@mention අවශ්‍ය නෑ)\n✦ 🎬 auto-fetch — "මට jailer movie එක ඔනි" වගේ request එකක් ආවාම AI ම *.moviedex* run කරනවා\n\n> Smart multi-engine fallback — engine එකක් down වුණත් *.ai* වැඩ`],
+    ['⚙️', 'Settings', `*SETTINGS*\n\n✦ *.setlogo* / *.dellogo* — menu logo\n✦ *.addmenu* — 🖼 photo deck add (හැම .menu එකකම ඊළඟ photo එක rotate වෙනවා) · *.deck* · *.delmenu <n>*\n✦ *.react on|off* — auto react\n✦ *.maxmb <MB>* — download limit\n✦ *.setting* — ⚙️ settings panel (අංක reply → toggle)\n✦ *.mode* — 🛡 mode panel (public / private / inbox / groups + AI chat modes)\n✦ *.autoupdate on|off* — GitHub එකෙන් auto update (default on)\n✦ *.update* · *.restart* · *.version*\n✦ commands — ඔයාට විතරයි (owner-only) · anti-ban — rate limit · human delay · backoff\n✦ *.antibug* — bug → delete + 🚀 auto report ×30 → ඉවර උනාම ⛔ block (bug ගහපු එකාට විතරයි)\n✦ *.antibug report on|off* · *.antibug count <1-100>*\n✦ 🚀 *.antibug reportv2 on|off* — v2 VERIFIED report (report_id) · *.antibug tokens*\n✦ *.antibug scan|test* — caught bugs · self-test\n✦ *.block <නම්බර්|reply>* · *.unblock* · *.blocklist*\n✦ *.antispam on|off|<N>* · *.spamlog* — flood guard\n✦ 🔘 *.menubtn on|off* — button menu toggle (WhatsApp native list)`],
 ];
 function menuCaption(name) {
     const v = (() => { try { return updater.localInfo().version; } catch { return require('./package.json').version; } })();
     const ram = Math.round(process.memoryUsage().rss / 1048576);
     return [
-        head(),   // ⌯ ━━ ＢＡＴＩＳＴＡ  ＭＤ ━━ ⌯
+        `*◈ ${BRAND} · MENU ◈*`,
+        `👋 ʜɪ *${String(name || 'Boss').slice(0, 25)}*`,
         '',
-        chip('Hi', `*${String(name || 'Boss').slice(0, 25)}*`),
-        chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`),
-        chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`),
+        '╭─〔 ⚡ *INFO* 〕',
+        `│ ⚡ v${v} · ⏱ ${fmtUptime(process.uptime())}`,
+        `│ 💾 ${ram} MB · 🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'}`,
+        '╰────────────⊷',
         '',
-        sect('📂 Categories'),
-        ...CATS.map(([e, n], i) => ' ' + row(i + 1, `${e} ${sm(n.toUpperCase())}`)),
-        close(20),
+        '╭─〔 📂 *CATEGORIES* 〕',
+        ...CATS.map(([e, n], i) => `│ *${i + 1}* ┃ ${e} ${n}`),
+        '╰────────────⊷',
         '',
-        foot('🔢 කාණ්ඩ අංකයක් *reply* කරන්න'),
+        foot('🔢 number එකක් reply කරන්න'),
     ].join('\n');
 }
 async function handleMenu(send, jid, msg, arg) {
@@ -707,7 +688,7 @@ async function handleMenu(send, jid, msg, arg) {
         // 🧊 v3.09: category card = premium frame (╭─〈 ᴛɪᴛʟᴇ 〉─╮ … ╰─〈 ʙᴀᴛɪꜱᴛᴀ ᴍᴅ 〉╯) — body එක එකම data, පේන්න විතරක් අලුත්
         const lines = cat[2].split('\n');
         const title = (lines.shift() || '').replace(/\*/g, '');   // first bold line = '📥 DOWNLOAD' → section header
-        return send(jid, { text: [sect(title), '', ...lines, '', close(18), '', foot('↩️ *.menu*')].join('\n').replace('{MAX}', human(maxBytes())) }, { quoted: msg });
+        return send(jid, { text: [`╭─〔 ${cat[0]} *${title}* 〕`, ...lines, '', '╰────────────⊷', '', foot('↩️ *.menu*')].join('\n').replace('{MAX}', human(maxBytes())) }, { quoted: msg });
     }
     // 🧊 tier variables — BOTH tiers use these (v/ram/catRows before any send)
     const bm = menuMedia();
@@ -717,7 +698,7 @@ async function handleMenu(send, jid, msg, arg) {
     // 🔘 v3.10 TIER 1 — REAL button list (proto listMessage): button tap → list popup → row tap → command
     const sentList = await sendListPanel(send, jid, msg, {
         title: `${BRAND} · MENU`,
-        text: `${chip('Hi', `*${String(msg.pushName || 'Boss').slice(0, 25)}*`)}\n${chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`)}\n${chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`)}\n\n${sect('📂 Menu')} — පහළ button එකෙන් තෝරන්න 👇`,
+        text: `*◈ ${BRAND} · MENU ◈*\n👋 ʜɪ *${String(msg.pushName || 'Boss').slice(0, 25)}*\n\n╭─〔 ⚡ *INFO* 〕\n│ ⚡ v${v} · ⏱ ${fmtUptime(process.uptime())}\n│ 💾 ${ram} MB · 🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'}\n╰────────────⊷\n\n📂 පහළ button එකෙන් තෝරන්න 👇`,
         buttonText: '📂 CATEGORIES ⬇️',
         sections: ui.sectionsOf(catRows, 'MENU'),
     });
@@ -725,7 +706,7 @@ async function handleMenu(send, jid, msg, arg) {
     // 🧊 v3.08 TIER 2 — interactive-first: native card (photo header + tap-to-open category list) → classic photo+caption fallback
     const sentInt = await sendInteractivePanel(send, jid, msg, {
         title: `${BRAND} · MENU`,
-        text: `${chip('Hi', `*${String(msg.pushName || 'Boss').slice(0, 25)}*`)}\n${chip('Bot', `v${v} · ${fmtUptime(process.uptime())}`)}\n${chip('Sys', `${ram} MB · ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'} · 🛡️`)}\n\n${sect('📂 Menu')} — පහළ button එකෙන් තෝරන්න 👇`,
+        text: `*◈ ${BRAND} · MENU ◈*\n👋 ʜɪ *${String(msg.pushName || 'Boss').slice(0, 25)}*\n\n╭─〔 ⚡ *INFO* 〕\n│ ⚡ v${v} · ⏱ ${fmtUptime(process.uptime())}\n│ 💾 ${ram} MB · 🖥️ ${process.env.ARENA_ON_PANEL ? 'Panel' : 'Termux'}\n╰────────────⊷\n\n📂 පහළ button එකෙන් තෝරන්න 👇`,
         image: bm?.image, selectTitle: '📂 Categories', sections: ui.sectionsOf(catRows, 'MENU'),
     });
     if (sentInt?.key?.id) { menuState.set(jid, { id: sentInt.key.id, at: Date.now() }); return; }
